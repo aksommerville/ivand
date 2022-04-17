@@ -22,6 +22,7 @@ void game_end() {
 void game_begin() {
   
   grid_default();
+  thumbnail_draw();
   //TODO init, setup
   
   memset(spritev,0,sizeof(spritev));
@@ -92,6 +93,31 @@ void render_dialogue_bubble(int16_t x,int16_t y,int16_t w,int16_t h,int16_t focu
   
 }
 
+/* Render thumbnail ornaments.
+ */
+ 
+static void game_render_thumbnail_ornaments() {
+  const int16_t x0=fb.w-thumbnail.w+1;
+  const int16_t y0=1;
+  const int16_t w0=THUMBNAIL_W-2;
+  const int16_t h0=THUMBNAIL_H-2;
+  int16_t x,y;
+  struct sprite *sprite;
+  
+  if (sprite=game_get_hero()) {
+    // phrase first in pixels, it would overflow if we kept in mm to the end
+    x=(sprite->x+(sprite->w>>1))/MM_PER_PIXEL;
+    y=(sprite->y+(sprite->h>>1))/MM_PER_PIXEL;
+    if (x>=WORLD_W_PIXELS) x-=WORLD_W_PIXELS;
+    x=(x*w0)/WORLD_W_PIXELS;
+    y=(y*h0)/WORLD_H_PIXELS;
+    x+=x0;
+    y+=y0;
+    const uint16_t color=(framec&0x10)?0xffff:0x0000;
+    fb.v[y*fb.stride+x]=color;
+  }
+}
+
 /* Render scene.
  */
  
@@ -117,7 +143,6 @@ void game_render() {
   for (;i-->0;sprite++) {
   
     // Skip fast if it won't draw anything.
-    //TODO (x,y,w,h) are *physical* bounds. Need to check *visible* bounds here instead.
     if (sprite->controller==SPRITE_CONTROLLER_NONE) continue;
     if (sprite->y>=cambottom) continue;
     if (sprite->y+sprite->h<=camera.y) continue;
@@ -136,5 +161,9 @@ void game_render() {
     }
   }
   
-  // Overlay TODO
+  // Overlay.
+  image_blit_opaque(&fb,fb.w-thumbnail.w,0,&thumbnail,0,0,thumbnail.w,thumbnail.h);
+  game_render_thumbnail_ornaments();
+  //TODO clock
+  //TODO tasks, danger...?
 }

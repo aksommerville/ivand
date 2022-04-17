@@ -12,6 +12,14 @@ uint8_t grid[WORLD_W_TILES*WORLD_H_TILES]={0};
 struct sprite spritev[SPRITE_LIMIT]={0};
 struct camera camera={0};
 
+static uint16_t thumbnail_storage[THUMBNAIL_W*THUMBNAIL_H];
+struct image thumbnail={
+  .v=thumbnail_storage,
+  .w=THUMBNAIL_W,
+  .h=THUMBNAIL_H,
+  .stride=THUMBNAIL_W,
+};
+
 /* Make initial grid.
  */
  
@@ -19,12 +27,12 @@ void grid_default() {
   int16_t horizon=WORLD_H_TILES>>1;
   int16_t skysize=WORLD_W_TILES*horizon;
   memset(grid,0x00,skysize);
-  memset(grid+skysize,0x11,WORLD_W_TILES);
-  memset(grid+skysize+WORLD_W_TILES,0x21,sizeof(grid)-WORLD_W_TILES-skysize);
+  memset(grid+skysize,0x2e,WORLD_W_TILES);
+  memset(grid+skysize+WORLD_W_TILES,0x2f,sizeof(grid)-WORLD_W_TILES-skysize);
   
   // XXX TEMP
   grid[WORLD_W_TILES*horizon]=0x01;
-  #define WALL(x,y) grid[(y)*WORLD_W_TILES+(x)]=0x43;
+  #define WALL(x,y) grid[(y)*WORLD_W_TILES+(x)]=0x20;
   WALL(20,15)
   WALL(24,15)
   WALL(24,14)
@@ -33,9 +41,9 @@ void grid_default() {
   WALL(28,13)
   #undef WALL
   
-  grid[WORLD_W_TILES*15+38]=0x14;//brick
-  grid[WORLD_W_TILES*15+40]=0x24;//barrel
-  grid[WORLD_W_TILES*15+42]=0x34;//statue
+  grid[WORLD_W_TILES*15+38]=0x10;//brick
+  grid[WORLD_W_TILES*15+40]=0x11;//barrel
+  grid[WORLD_W_TILES*15+42]=0x12;//statue
 }
 
 /* Update camera.
@@ -136,13 +144,8 @@ uint8_t grid_contains_any_solid(int16_t xmm,int16_t ymm,int16_t wmm,int16_t hmm)
  * For now at least, this only applies to dirt.
  */
  
-static uint8_t grid_tile_is_dirt(uint8_t tileid) {
-  uint8_t col=tileid&0x0f;
-  uint8_t row=tileid>>4;
-  if (row<1) return 0;
-  if (row>=5) return 0;
-  if (col>=4) return 0;
-  return 1;
+static inline uint8_t grid_tile_is_dirt(uint8_t tileid) {
+  return ((tileid&0xf0)==0x20);
 }
  
 static void grid_join_neighbors_1(int16_t x,int16_t y) {
@@ -174,27 +177,7 @@ static void grid_join_neighbors_1(int16_t x,int16_t y) {
   0;
   #undef DIRT
   
-  // We now have one of 16 neighbor masks, which correspond to the 16 dirt tiles.
-  // They're organized for visual consistency, not geometric. So this has to be an explicit table.
-  // Hmm now that I think about it, the bottom edges are not possible -- we have no ceilings. Whatever.
-  switch (neighbors) {
-    case 0: *p=0x43; break;
-    case DIR_N: *p=0x33; break;
-    case DIR_W: *p=0x42; break;
-    case DIR_E: *p=0x40; break;
-    case DIR_S: *p=0x13; break;
-    case DIR_N|DIR_W: *p=0x32; break;
-    case DIR_N|DIR_E: *p=0x30; break;
-    case DIR_N|DIR_S: *p=0x23; break;
-    case DIR_W|DIR_E: *p=0x41; break;
-    case DIR_W|DIR_S: *p=0x12; break;
-    case DIR_E|DIR_S: *p=0x10; break;
-    case DIR_N|DIR_W|DIR_E: *p=0x31; break;
-    case DIR_N|DIR_W|DIR_S: *p=0x22; break;
-    case DIR_N|DIR_E|DIR_S: *p=0x20; break;
-    case DIR_W|DIR_E|DIR_S: *p=0x11; break;
-    case DIR_N|DIR_W|DIR_E|DIR_S: *p=0x21; break;
-  }
+  *p=0x20+neighbors;
 }
  
 static void grid_join_neighbors(int16_t x,int16_t y) {
@@ -231,7 +214,67 @@ uint8_t grid_add_dirt(int16_t x,int16_t y) {
   int16_t p=y*WORLD_W_TILES+x;
   if (grid[p]!=0x00) return 0; // Can only add dirt on wide-open cells.
   if ((y<WORLD_H_TILES-1)&&(grid[p+WORLD_W_TILES]<0x10)) return 0; // Next row down must be solid.
-  grid[p]=0x21;
+  grid[p]=0x20;
   grid_join_neighbors(x,y);
   return 1;
+}
+
+/* Draw thumbnail.
+ */
+ 
+void thumbnail_draw() {
+  const uint16_t color_frame=0x0000;
+  const uint16_t color_sky  =0xffff;
+  const uint16_t color_dirt =0x1084;
+  const uint16_t color_other=0x0842;
+  
+  // 1-pixel frame.
+  image_fill_rect(&thumbnail,0,0,thumbnail.w,1,color_frame);
+  image_fill_rect(&thumbnail,0,thumbnail.h-1,thumbnail.w,1,color_frame);
+  image_fill_rect(&thumbnail,0,1,1,thumbnail.h-2,color_frame);
+  image_fill_rect(&thumbnail,thumbnail.w-1,1,1,thumbnail.h-2,color_frame);
+  
+  // For the interior, every 4 cells of the grid correspond to 1 pixel of the thumbnail.
+  // Check it using the constants to be safe, this check should disappear during compilation.
+  if ((THUMBNAIL_W-2==WORLD_W_TILES>>1)&&(THUMBNAIL_H-2==WORLD_H_TILES>>1)) {
+    const uint8_t *srcrow=grid;
+    uint16_t *dstrow=thumbnail.v+thumbnail.stride+1;
+    int16_t yi=THUMBNAIL_H-2;
+    for (;yi-->0;srcrow+=WORLD_W_TILES*2,dstrow+=thumbnail.stride) {
+      const uint8_t *srcp=srcrow;
+      uint16_t *dstp=dstrow;
+      int16_t xi=THUMBNAIL_W-2;
+      #define DESC1(tile) switch ((tile)&0xf0) { \
+        case 0x00: sky=1; break; \
+        case 0x20: dirt=1; break; \
+        default: other=1; break; \
+      }
+      #define DESCRIBE \
+        uint8_t sky=0,dirt=0,other=0; \
+        DESC1(srcp[0]) \
+        DESC1(srcp[1]) \
+        DESC1(srcp[WORLD_W_TILES]) \
+        DESC1(srcp[WORLD_W_TILES+1])
+      if (yi>=((THUMBNAIL_H-2)>>1)) { // upper half, accentuate dirt
+        for (;xi-->0;srcp+=2,dstp++) {
+          DESCRIBE
+          if (other) *dstp=color_other;
+          else if (dirt) *dstp=color_dirt;
+          else *dstp=color_sky;
+        }
+      } else { // lower half, accentuate sky
+        for (;xi-->0;srcp+=2,dstp++) {
+          DESCRIBE
+          if (other) *dstp=color_other;
+          else if (sky) *dstp=color_sky;
+          else *dstp=color_dirt;
+        }
+      }
+      #undef DESC1
+      #undef DESCRIBE
+    }
+  
+  } else { // dammit andy you broke something
+    image_fill_rect(&thumbnail,1,1,thumbnail.w-2,thumbnail.h-2,0xff00);
+  }
 }

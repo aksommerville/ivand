@@ -21,7 +21,7 @@
 
 ## TODO
 
-- [ ] Bricks and barrels
+- [x] Bricks and barrels
 - [ ] World map thumbnail
 - [ ] Clock
 - [ ] Guards

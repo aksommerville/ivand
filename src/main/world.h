@@ -35,6 +35,10 @@ struct image;
 #define SPRITE_LIMIT 32
 #define SPRITE_OPAQUE_SIZE 64
 
+#define THUMBNAIL_W ((WORLD_W_TILES>>1)+2)
+#define THUMBNAIL_H ((WORLD_H_TILES>>1)+2)
+extern struct image thumbnail;
+
 extern uint8_t grid[WORLD_W_TILES*WORLD_H_TILES];
 
 #define SPRITE_HEADER \
@@ -83,5 +87,8 @@ uint8_t grid_contains_any_solid(int16_t xmm,int16_t ymm,int16_t wmm,int16_t hmm)
  */
 uint8_t grid_remove_dirt(int16_t x,int16_t y);
 uint8_t grid_add_dirt(int16_t x,int16_t y);
+
+// Draw the whole thumbnail from scratch.
+void thumbnail_draw();
 
 #endif

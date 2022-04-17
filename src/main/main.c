@@ -25,7 +25,7 @@ static uint8_t mainstate=MAINSTATE_INIT;
 
 static uint8_t input=0;
 static uint8_t pvinput=0;
-static uint32_t framec=0;
+uint32_t framec=0;
 
 struct synth synth={0};
 

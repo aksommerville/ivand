@@ -191,9 +191,9 @@ static void ivan_check_tattle(struct sprite *sprite) {
       if ((row>=0)&&(row<WORLD_H_TILES)) {
         uint8_t tile=grid[row*WORLD_W_TILES+col];
         switch (tile) {
-          case 0x14: 
-          case 0x24: 
-          case 0x34: if (SPRITE->tattle!=TATTLE_PICKUP) ivan_dismiss_tattle(sprite); SPRITE->tattle=TATTLE_PICKUP; return;
+          case 0x10: 
+          case 0x11: 
+          case 0x12: if (SPRITE->tattle!=TATTLE_PICKUP) ivan_dismiss_tattle(sprite); SPRITE->tattle=TATTLE_PICKUP; return;
         }
       }
     }
@@ -245,6 +245,7 @@ static void ivan_dig(struct sprite *sprite) {
   int row=(sprite->y+sprite->h+(TILE_H_MM>>1))/TILE_H_MM;
   int col=(sprite->x+(sprite->w>>1))/TILE_W_MM;
   if (grid_remove_dirt(col,row)) {
+    thumbnail_draw();//TODO consider incremental redraw; only one pixel could have changed
     SPRITE->carrying=CARRYING_SHOVEL_FULL;
     // No need to move Ivan; gravity will take over.
   }
@@ -258,6 +259,7 @@ static void ivan_deposit(struct sprite *sprite) {
   int row=(sprite->y+sprite->h-(TILE_H_MM>>1))/TILE_H_MM;
   int col=(sprite->x+(sprite->w>>1))/TILE_W_MM;
   if (grid_add_dirt(col,row)) {
+    thumbnail_draw();//TODO consider incremental redraw; only one pixel could have changed
     SPRITE->carrying=CARRYING_SHOVEL;
     sprite->y-=TILE_H_MM;
   }
@@ -278,12 +280,13 @@ static void ivan_pickup(struct sprite *sprite) {
   
   uint8_t tile=grid[row*WORLD_W_TILES+col];
   switch (tile) {
-    case 0x14: SPRITE->carrying=CARRYING_BRICK; break;
-    case 0x24: SPRITE->carrying=CARRYING_BARREL; break;
-    case 0x34: SPRITE->carrying=CARRYING_STATUE; break;
+    case 0x10: SPRITE->carrying=CARRYING_BRICK; break;
+    case 0x11: SPRITE->carrying=CARRYING_BARREL; break;
+    case 0x12: SPRITE->carrying=CARRYING_STATUE; break;
     default: return;
   }
   grid[row*WORLD_W_TILES+col]=0x00;
+  thumbnail_draw();//TODO consider incremental redraw; only one pixel could have changed
 }
  
 static void ivan_drop(struct sprite *sprite) {
@@ -291,9 +294,9 @@ static void ivan_drop(struct sprite *sprite) {
   // Verify we're carrying something droppable, and record the tileid.
   uint8_t tileid;
   switch (SPRITE->carrying) {
-    case CARRYING_BRICK: tileid=0x14; break;
-    case CARRYING_BARREL: tileid=0x24; break;
-    case CARRYING_STATUE: tileid=0x34; break;
+    case CARRYING_BRICK: tileid=0x10; break;
+    case CARRYING_BARREL: tileid=0x11; break;
+    case CARRYING_STATUE: tileid=0x12; break;
     default: return;
   }
   if (!sprite_is_grounded(sprite)) return;
@@ -311,6 +314,7 @@ static void ivan_drop(struct sprite *sprite) {
   grid[row*WORLD_W_TILES+col]=tileid;
   SPRITE->carrying=CARRYING_NONE;
   sprite->y-=TILE_H_MM;
+  thumbnail_draw();//TODO consider incremental redraw; only one pixel could have changed
 }
 
 /* After horz movement, vert movement, and tattles, check for other occasional actions.
@@ -426,9 +430,9 @@ void sprite_render_ivan(struct sprite *sprite) {
         }
       } break;
     
-    case CARRYING_BRICK: tileid=0x14; goto _overhead_;
-    case CARRYING_BARREL: tileid=0x24; goto _overhead_;
-    case CARRYING_STATUE: tileid=0x34; goto _overhead_;
+    case CARRYING_BRICK: tileid=0x10; goto _overhead_;
+    case CARRYING_BARREL: tileid=0x11; goto _overhead_;
+    case CARRYING_STATUE: tileid=0x12; goto _overhead_;
     _overhead_: {
         int16_t dstx=(SPRITE->facedir<0)?(x-2):(x-1);
         if (tileid==0x34) { // special colorkey version of statue
