@@ -35,19 +35,6 @@ uint8_t sprite_is_grounded(const struct sprite *sprite) {
       return 1;
     }
   }
-  
-  // Check other sprites, if our bottom matches their top exactly.
-  #if 0//XXX eliminating solid sprites
-  const struct sprite *other=spritev;
-  uint8_t i=SPRITE_LIMIT;
-  for (;i-->0;other++) {
-    if (other->y!=bottom) continue;
-    //TODO accomodate horizontal wraparound
-    if (sprite->x>=other->x+other->w) continue;
-    if (other->x>=sprite->x+sprite->w) continue;
-    return 1;
-  }
-  #endif
 
   return 0;
 }
@@ -84,23 +71,6 @@ int16_t sprite_move_horz(struct sprite *sprite,int16_t dx) {
     }
   }
   
-  // Check solid sprites. TODO will there ever be solid sprites? maybe we can skip this
-  #if 0
-  int16_t bottom=sprite->y+sprite->h;
-  int16_t left=sprite->x+dx; // the proposed new left
-  int16_t right=left+sprite->w;
-  const struct sprite *other=spritev;
-  uint8_t i=SPRITE_LIMIT;
-  for (;i-->0;other++) {
-    if (other->y>=bottom) continue;
-    if (other->y+other->h<=sprite->y) continue;
-    if (other==sprite) continue;
-    if (other->x>=right) continue;
-    if (other->x+other->w<=left) continue;
-    //TODO sprite-on-sprite horz collision
-  }
-  #endif
-  
   // Commit the move and check for wrap.
   sprite->x+=dx;
   if (dx<0) {
@@ -118,7 +88,10 @@ int16_t sprite_move_horz(struct sprite *sprite,int16_t dx) {
 void sprite_get_render_position(int16_t *x,int16_t *y,const struct sprite *sprite) {
   // Careful here, it's floor division, so we want to first scale everything to pixels, then translate.
   *x=sprite->x/MM_PER_PIXEL-camera.x/MM_PER_PIXEL;
-  if (*x<0) (*x)+=WORLD_W_PIXELS;
+  if (
+    (camera.x+camera.w>WORLD_W_MM)&&
+    (sprite->x+sprite->w<=camera.x)
+  ) (*x)+=WORLD_W_PIXELS;
   *y=sprite->y/MM_PER_PIXEL-camera.y/MM_PER_PIXEL;
 }
 
@@ -162,9 +135,9 @@ void sprite_render_shovel(struct sprite *sprite) {
   if (SHOVEL_TATTLE) {
     int16_t midx=x+(sprite->w>>1)/MM_PER_PIXEL;
     int16_t bubblew=40;
-    render_dialogue_bubble(midx-(bubblew>>1),y-14,bubblew,14,midx);
-    image_blit_colorkey(&fb,midx-17,y-11,&fgbits,15,28,5,5);
-    image_blit_string(&fb,midx-9,y-12,"Pick up",7,0x0000,font);
+    render_dialogue_bubble(midx-(bubblew>>1),y-19,bubblew,14,midx);
+    image_blit_colorkey(&fb,midx-17,y-16,&fgbits,15,28,5,5);
+    image_blit_string(&fb,midx-9,y-17,"Pick up",7,0x0000,font);
   }
 }
 

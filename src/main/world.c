@@ -32,6 +32,10 @@ void grid_default() {
   WALL(28,14)
   WALL(28,13)
   #undef WALL
+  
+  grid[WORLD_W_TILES*15+38]=0x14;//brick
+  grid[WORLD_W_TILES*15+40]=0x24;//barrel
+  grid[WORLD_W_TILES*15+42]=0x34;//statue
 }
 
 /* Update camera.

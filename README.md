@@ -21,8 +21,12 @@
 
 ## TODO
 
+- [ ] Bricks and barrels
+- [ ] World map thumbnail
+- [ ] Clock
+- [ ] Guards
+- [ ] Statue
 - [ ] Get permission from the Solzhenitsyn estate: https://www.solzhenitsyncenter.org/who-we-are
-- [ ] Watch the 1970 movie. There's a movie!
+- [x] Watch the 1970 movie. There's a movie!
 - - https://www.youtube.com/watch?v=YqG1uwhTX2o
-- [ ] Write the game...
-- - [ ] Copy Pocket Orchestra and scrub it.
+- - ...it doesn't do justice to the book (an example i intend to follow...)

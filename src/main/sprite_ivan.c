@@ -17,6 +17,7 @@
 
 #define TATTLE_NONE 0
 #define TATTLE_SHOVEL 1
+#define TATTLE_PICKUP 2 /* for grid pickups (brick,barrel,statue) */
 
 /* Object definition.
  */
@@ -59,7 +60,7 @@ struct sprite *game_hero_init() {
   sprite->h=11*MM_PER_PIXEL;
   int16_t herocol=WORLD_W_TILES>>1;
   int16_t herorow=WORLD_H_TILES>>1;
-  sprite->x=herocol*TILE_W_MM+(TILE_W_MM>>1);
+  sprite->x=herocol*TILE_W_MM+(TILE_W_MM>>1);//TODO position to avoid auto-adjust
   sprite->y=herorow*TILE_H_MM-sprite->h;
 }
 
@@ -164,6 +165,7 @@ static void ivan_dismiss_tattle(struct sprite *sprite) {
 static void ivan_check_tattle(struct sprite *sprite) {
   int16_t midx=sprite->x+(sprite->w>>1);
   int16_t midy=sprite->y+(sprite->h>>1);
+  
   struct sprite *other=spritev;
   uint8_t i=SPRITE_LIMIT;
   for (;i-->0;other++) {
@@ -174,11 +176,29 @@ static void ivan_check_tattle(struct sprite *sprite) {
     if (midy>=other->y+other->h) continue;
     switch (other->controller) {
       case SPRITE_CONTROLLER_SHOVEL: {
+          if (SPRITE->tattle!=TATTLE_SHOVEL) ivan_dismiss_tattle(sprite);
           SPRITE->tattle=TATTLE_SHOVEL; 
           other->opaque[1]=1;
         } return;
     }
   }
+  
+  if (sprite_is_grounded(sprite)) {
+    int16_t col=midx/TILE_W_MM;
+    if (col>=WORLD_W_TILES) col-=WORLD_W_TILES;
+    if ((col>=0)&&(col<WORLD_W_TILES)) {
+      int16_t row=(sprite->y+sprite->h+(TILE_H_MM>>1))/TILE_H_MM;
+      if ((row>=0)&&(row<WORLD_H_TILES)) {
+        uint8_t tile=grid[row*WORLD_W_TILES+col];
+        switch (tile) {
+          case 0x14: 
+          case 0x24: 
+          case 0x34: if (SPRITE->tattle!=TATTLE_PICKUP) ivan_dismiss_tattle(sprite); SPRITE->tattle=TATTLE_PICKUP; return;
+        }
+      }
+    }
+  }
+  
   if (SPRITE->tattle) ivan_dismiss_tattle(sprite);
 }
 
@@ -247,14 +267,50 @@ static void ivan_deposit(struct sprite *sprite) {
  */
  
 static void ivan_pickup(struct sprite *sprite) {
-  fprintf(stderr,"%s\n",__func__);//TODO
-  //TODO examine grid
+  if (SPRITE->carrying!=CARRYING_NONE) return;
+  if (!sprite_is_grounded(sprite)) return;
+  int16_t midx=sprite->x+(sprite->w>>1);
+  int16_t col=midx/TILE_W_MM;
+  if (col>=WORLD_W_TILES) col-=WORLD_W_TILES;
+  if ((col<0)||(col>=WORLD_W_TILES)) return;
+  int16_t row=(sprite->y+sprite->h+(TILE_H_MM>>1))/TILE_H_MM;
+  if ((row<0)||(row>=WORLD_H_TILES)) return;
+  
+  uint8_t tile=grid[row*WORLD_W_TILES+col];
+  switch (tile) {
+    case 0x14: SPRITE->carrying=CARRYING_BRICK; break;
+    case 0x24: SPRITE->carrying=CARRYING_BARREL; break;
+    case 0x34: SPRITE->carrying=CARRYING_STATUE; break;
+    default: return;
+  }
+  grid[row*WORLD_W_TILES+col]=0x00;
 }
  
 static void ivan_drop(struct sprite *sprite) {
-  fprintf(stderr,"%s\n",__func__);//TODO
-  //TODO update grid
+  
+  // Verify we're carrying something droppable, and record the tileid.
+  uint8_t tileid;
+  switch (SPRITE->carrying) {
+    case CARRYING_BRICK: tileid=0x14; break;
+    case CARRYING_BARREL: tileid=0x24; break;
+    case CARRYING_STATUE: tileid=0x34; break;
+    default: return;
+  }
+  if (!sprite_is_grounded(sprite)) return;
+  
+  // Find the cell where our crotch is and verify it's fully empty.
+  int16_t midx=sprite->x+(sprite->w>>1);
+  int16_t col=midx/TILE_W_MM;
+  if (col>=WORLD_W_TILES) col-=WORLD_W_TILES;
+  if ((col<0)||(col>=WORLD_W_TILES)) return;
+  int16_t row=(sprite->y+sprite->h-(TILE_H_MM>>1))/TILE_H_MM;
+  if ((row<0)||(row>=WORLD_H_TILES)) return;
+  if (grid[row*WORLD_W_TILES+col]!=0x00) return;
+  
+  // In any other game, we'd have to check for headroom, but in this one there are no ceilings.
+  grid[row*WORLD_W_TILES+col]=tileid;
   SPRITE->carrying=CARRYING_NONE;
+  sprite->y-=TILE_H_MM;
 }
 
 /* After horz movement, vert movement, and tattles, check for other occasional actions.
@@ -335,22 +391,26 @@ void sprite_render_ivan(struct sprite *sprite) {
     case CARRYING_NONE: torsoframe=legframe; break;
     case CARRYING_SHOVEL:
     case CARRYING_SHOVEL_FULL: break; // 0
-    default: break; // TODO overhead carry
+    case CARRYING_BRICK:
+    case CARRYING_BARREL:
+    case CARRYING_STATUE: torsoframe=4; headframe=1; break;
   }
   
   // Draw head, torso, and legs.
   if (SPRITE->facedir<0) {
-    image_blit_colorkey_flop(&fb,x-2,y+4,&fgbits,17+torsoframe*9,0,9,5);
+    image_blit_colorkey_flop(&fb,x-2,y+4,&fgbits,22+torsoframe*9,0,9,5);
     image_blit_colorkey_flop(&fb,x-1,y+8,&fgbits,legframe*7,9,7,3);
-    image_blit_colorkey_flop(&fb,x,y,&fgbits,0,0,5,5);
+    image_blit_colorkey_flop(&fb,x,y,&fgbits,headframe*5,0,5,5);
   } else {
-    image_blit_colorkey(&fb,x-2,y+4,&fgbits,17+torsoframe*9,0,9,5);
+    image_blit_colorkey(&fb,x-2,y+4,&fgbits,22+torsoframe*9,0,9,5);
     image_blit_colorkey(&fb,x-1,y+8,&fgbits,legframe*7,9,7,3);
-    image_blit_colorkey(&fb,x,y,&fgbits,0,0,5,5);
+    image_blit_colorkey(&fb,x,y,&fgbits,headframe*5,0,5,5);
   }
   
   // Draw the carry item, and forward arm if needed.
+  uint8_t tileid;
   switch (SPRITE->carrying) {
+  
     case CARRYING_SHOVEL:
     case CARRYING_SHOVEL_FULL: {
         int16_t dirtx;
@@ -362,9 +422,47 @@ void sprite_render_ivan(struct sprite *sprite) {
           dirtx=x+8;
         }
         if (SPRITE->carrying==CARRYING_SHOVEL_FULL) {
-          image_blit_colorkey(&fb,dirtx,y+3,&fgbits,12,0,5,5);
+          image_blit_colorkey(&fb,dirtx,y+3,&fgbits,17,0,5,5);
         }
       } break;
-    //TODO overhead carry
+    
+    case CARRYING_BRICK: tileid=0x14; goto _overhead_;
+    case CARRYING_BARREL: tileid=0x24; goto _overhead_;
+    case CARRYING_STATUE: tileid=0x34; goto _overhead_;
+    _overhead_: {
+        int16_t dstx=(SPRITE->facedir<0)?(x-2):(x-1);
+        if (tileid==0x34) { // special colorkey version of statue
+          image_blit_colorkey(&fb,dstx,y-8,&fgbits,5,20,8,8);
+        } else { // everything else is square
+          image_blit_opaque(&fb,dstx,y-8,&bgtiles,(tileid&0x0f)*TILE_W_PIXELS,(tileid>>4)*TILE_H_PIXELS,8,8);
+        }
+        if (SPRITE->facedir<0) { // forward arm
+          image_blit_colorkey_flop(&fb,x+2,y-1,&fgbits,30,28,3,5);
+        } else {
+          image_blit_colorkey(&fb,x,y-1,&fgbits,30,28,3,5);
+        }
+      } break;
+  }
+  
+  // Shovel draws its own tattle, but we draw the grid-anchored ones.
+  switch (SPRITE->tattle) {
+    case TATTLE_PICKUP: {
+        int16_t col=(sprite->x+(sprite->w>>1))/TILE_W_MM;
+        if (col>=WORLD_W_TILES) col-=WORLD_W_TILES;
+        int16_t row=(sprite->y+sprite->h+(TILE_H_MM>>1))/TILE_H_MM;
+        if ((col>=0)&&(row>=0)&&(col<WORLD_W_TILES)&&(row<WORLD_H_TILES)) {
+          int16_t dstw=40;
+          int16_t dsth=14;
+          int16_t dstx=col*TILE_W_PIXELS-(camera.x/MM_PER_PIXEL)+(TILE_W_PIXELS>>1)-(dstw>>1);
+          int16_t dsty=row*TILE_H_PIXELS-(camera.y/MM_PER_PIXEL)-12-dsth;
+          if (
+            (camera.x+camera.w>WORLD_W_MM)&&
+            (dstx+dstw<=0)
+          ) dstx+=WORLD_W_PIXELS;
+          render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
+          image_blit_colorkey(&fb,dstx+3,dsty+3,&fgbits,10,28,5,5);
+          image_blit_string(&fb,dstx+11/*?*/,dsty+2,"Pick up",7,0x0000,font);
+        }
+      } break;
   }
 }
