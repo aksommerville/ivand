@@ -1,5 +1,6 @@
 #include "world.h"
 #include "data.h"
+#include "game.h"
 #include "platform.h"
 #include <string.h>
 #include <stdio.h>
@@ -125,4 +126,108 @@ uint8_t grid_contains_any_solid(int16_t xmm,int16_t ymm,int16_t wmm,int16_t hmm)
   }
   
   return 0;
+}
+
+/* Join neighbors among the 9 cells centered at (x,y).
+ * For now at least, this only applies to dirt.
+ */
+ 
+static uint8_t grid_tile_is_dirt(uint8_t tileid) {
+  uint8_t col=tileid&0x0f;
+  uint8_t row=tileid>>4;
+  if (row<1) return 0;
+  if (row>=5) return 0;
+  if (col>=4) return 0;
+  return 1;
+}
+ 
+static void grid_join_neighbors_1(int16_t x,int16_t y) {
+
+  if ((y<0)||(y>=WORLD_H_TILES)) return;
+  if (x<0) x+=WORLD_W_TILES;
+  else if (x>=WORLD_W_TILES) x-=WORLD_W_TILES;
+  uint8_t *p=grid+y*WORLD_W_TILES+x;
+  if (!grid_tile_is_dirt(*p)) return;
+  
+  // Which of my neighbors are dirt? Only the cardinal neighbors matter.
+  // If it's OOB vertically call it a match.
+  #define DIRT(dx,dy) ({ \
+    uint8_t _result=1; \
+    int16_t qx=x+dx; \
+    if (qx<0) qx=WORLD_W_TILES-1; \
+    else if (qx>=WORLD_W_TILES) qx=0; \
+    int16_t qy=y+dy; \
+    if ((qy>=0)&&(qy<WORLD_H_TILES)) { \
+      _result=grid_tile_is_dirt(grid[qy*WORLD_W_TILES+qx]); \
+    } \
+    _result; \
+  })
+  uint8_t neighbors=
+    (DIRT( 0,-1)?DIR_N:0)|
+    (DIRT(-1, 0)?DIR_W:0)|
+    (DIRT( 1, 0)?DIR_E:0)|
+    (DIRT( 0, 1)?DIR_S:0)|
+  0;
+  #undef DIRT
+  
+  // We now have one of 16 neighbor masks, which correspond to the 16 dirt tiles.
+  // They're organized for visual consistency, not geometric. So this has to be an explicit table.
+  // Hmm now that I think about it, the bottom edges are not possible -- we have no ceilings. Whatever.
+  switch (neighbors) {
+    case 0: *p=0x43; break;
+    case DIR_N: *p=0x33; break;
+    case DIR_W: *p=0x42; break;
+    case DIR_E: *p=0x40; break;
+    case DIR_S: *p=0x13; break;
+    case DIR_N|DIR_W: *p=0x32; break;
+    case DIR_N|DIR_E: *p=0x30; break;
+    case DIR_N|DIR_S: *p=0x23; break;
+    case DIR_W|DIR_E: *p=0x41; break;
+    case DIR_W|DIR_S: *p=0x12; break;
+    case DIR_E|DIR_S: *p=0x10; break;
+    case DIR_N|DIR_W|DIR_E: *p=0x31; break;
+    case DIR_N|DIR_W|DIR_S: *p=0x22; break;
+    case DIR_N|DIR_E|DIR_S: *p=0x20; break;
+    case DIR_W|DIR_E|DIR_S: *p=0x11; break;
+    case DIR_N|DIR_W|DIR_E|DIR_S: *p=0x21; break;
+  }
+}
+ 
+static void grid_join_neighbors(int16_t x,int16_t y) {
+  if ((x<0)||(y<0)||(x>=WORLD_W_TILES)||(y>=WORLD_H_TILES)) return;
+  int8_t dx,dy;
+  for (dx=-1;dx<=1;dx++) {
+    for (dy=-1;dy<=1;dy++) {
+      grid_join_neighbors_1(x+dx,y+dy);
+    }
+  }
+}
+
+/* Toggle dirt.
+ */
+ 
+uint8_t grid_remove_dirt(int16_t x,int16_t y) {
+  if ((y<0)||(y>=WORLD_H_TILES)) return 0;
+  if (x<0) return 0;
+  if (x>=WORLD_W_TILES) x-=WORLD_W_TILES;
+  if (x>=WORLD_W_TILES) return 0;
+  int16_t p=y*WORLD_W_TILES+x;
+  if (!grid_tile_is_dirt(grid[p])) return 0;
+  if ((y>0)&&(grid[p-WORLD_W_TILES]>=0x10)) return 0; // Next row up must be empty.
+  grid[p]=0x00;
+  grid_join_neighbors(x,y);
+  return 1;
+}
+
+uint8_t grid_add_dirt(int16_t x,int16_t y) {
+  if ((y<0)||(y>=WORLD_H_TILES)) return 0;
+  if (x<0) return 0;
+  if (x>=WORLD_W_TILES) x-=WORLD_W_TILES;
+  if (x>=WORLD_W_TILES) return 0;
+  int16_t p=y*WORLD_W_TILES+x;
+  if (grid[p]!=0x00) return 0; // Can only add dirt on wide-open cells.
+  if ((y<WORLD_H_TILES-1)&&(grid[p+WORLD_W_TILES]<0x10)) return 0; // Next row down must be solid.
+  grid[p]=0x21;
+  grid_join_neighbors(x,y);
+  return 1;
 }

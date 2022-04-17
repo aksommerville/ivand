@@ -50,6 +50,7 @@ extern struct sprite {
 #define SPRITE_CONTROLLER_IVAN 1
 #define SPRITE_CONTROLLER_DUMMY 2
 #define SPRITE_CONTROLLER_GUARD 3
+#define SPRITE_CONTROLLER_SHOVEL 4
 
 extern struct camera {
   int16_t x,y,w,h; // Boundaries in mm, watch for exceeding left and right world edges.
@@ -74,5 +75,13 @@ void grid_render(
 );
 
 uint8_t grid_contains_any_solid(int16_t xmm,int16_t ymm,int16_t wmm,int16_t hmm);
+
+/* Toggle dirt in one cell.
+ * (x,y) in tiles.
+ * Returns nonzero if something changed or zero if rejected.
+ * We take care of neighbor joining and all that.
+ */
+uint8_t grid_remove_dirt(int16_t x,int16_t y);
+uint8_t grid_add_dirt(int16_t x,int16_t y);
 
 #endif

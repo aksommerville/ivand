@@ -1,7 +1,24 @@
 #include "game.h"
 #include "world.h"
 #include "platform.h"
+#include "data.h"
 #include <stdio.h>
+#include <string.h>
+
+/* Find any unused sprite.
+ */
+ 
+struct sprite *sprite_new() {
+  struct sprite *sprite=spritev;
+  uint8_t i=SPRITE_LIMIT;
+  for (;i-->0;sprite++) {
+    if (sprite->controller==SPRITE_CONTROLLER_NONE) {
+      memset(sprite,0,sizeof(struct sprite));
+      return sprite;
+    }
+  }
+  return 0;
+}
 
 /* Test feet on solid ground.
  */
@@ -20,6 +37,7 @@ uint8_t sprite_is_grounded(const struct sprite *sprite) {
   }
   
   // Check other sprites, if our bottom matches their top exactly.
+  #if 0//XXX eliminating solid sprites
   const struct sprite *other=spritev;
   uint8_t i=SPRITE_LIMIT;
   for (;i-->0;other++) {
@@ -29,6 +47,7 @@ uint8_t sprite_is_grounded(const struct sprite *sprite) {
     if (other->x>=sprite->x+sprite->w) continue;
     return 1;
   }
+  #endif
 
   return 0;
 }
@@ -66,6 +85,7 @@ int16_t sprite_move_horz(struct sprite *sprite,int16_t dx) {
   }
   
   // Check solid sprites. TODO will there ever be solid sprites? maybe we can skip this
+  #if 0
   int16_t bottom=sprite->y+sprite->h;
   int16_t left=sprite->x+dx; // the proposed new left
   int16_t right=left+sprite->w;
@@ -79,6 +99,7 @@ int16_t sprite_move_horz(struct sprite *sprite,int16_t dx) {
     if (other->x+other->w<=left) continue;
     //TODO sprite-on-sprite horz collision
   }
+  #endif
   
   // Commit the move and check for wrap.
   sprite->x+=dx;
@@ -89,6 +110,16 @@ int16_t sprite_move_horz(struct sprite *sprite,int16_t dx) {
   }
   
   return dx;
+}
+
+/* Render position.
+ */
+ 
+void sprite_get_render_position(int16_t *x,int16_t *y,const struct sprite *sprite) {
+  // Careful here, it's floor division, so we want to first scale everything to pixels, then translate.
+  *x=sprite->x/MM_PER_PIXEL-camera.x/MM_PER_PIXEL;
+  if (*x<0) (*x)+=WORLD_W_PIXELS;
+  *y=sprite->y/MM_PER_PIXEL-camera.y/MM_PER_PIXEL;
 }
 
 /* Dummy.
@@ -108,3 +139,34 @@ void sprite_update_guard(struct sprite *sprite) {
 void sprite_render_guard(struct sprite *sprite) {
 //TODO
 }
+
+/* Shovel.
+ */
+ 
+#define SHOVEL_ANIMCLOCK (sprite->opaque[0])
+#define SHOVEL_TATTLE (sprite->opaque[1]) /* NB: Ivan cheats and accesses this directly */
+ 
+void sprite_render_shovel(struct sprite *sprite) {
+
+  if (SHOVEL_ANIMCLOCK) SHOVEL_ANIMCLOCK--;
+  else SHOVEL_ANIMCLOCK=40;
+  
+  uint8_t frame=0;
+  if (SHOVEL_ANIMCLOCK>=20) frame=1;
+  else frame=0;
+  
+  int16_t x,y;
+  sprite_get_render_position(&x,&y,sprite);
+  image_blit_colorkey(&fb,x,y,&fgbits,0+frame*13,12,13,5);
+  
+  if (SHOVEL_TATTLE) {
+    int16_t midx=x+(sprite->w>>1)/MM_PER_PIXEL;
+    int16_t bubblew=40;
+    render_dialogue_bubble(midx-(bubblew>>1),y-14,bubblew,14,midx);
+    image_blit_colorkey(&fb,midx-17,y-11,&fgbits,15,28,5,5);
+    image_blit_string(&fb,midx-9,y-12,"Pick up",7,0x0000,font);
+  }
+}
+
+#undef SHOVEL_ANIMCLOCK
+#undef SHOVEL_TATTLE
