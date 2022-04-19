@@ -49,21 +49,6 @@ struct sprite *game_get_hero() {
   return 0;
 }
 
-/* Create the hero sprite.
- */
- 
-struct sprite *game_hero_init() {
-  struct sprite *sprite=spritev+0;//TODO maybe put him in the middle? this controls z index
-  
-  sprite->controller=SPRITE_CONTROLLER_IVAN;
-  sprite->w=TILE_W_MM;
-  sprite->h=11*MM_PER_PIXEL;
-  int16_t herocol=WORLD_W_TILES>>1;
-  int16_t herorow=WORLD_H_TILES>>1;
-  sprite->x=herocol*TILE_W_MM+(TILE_W_MM>>1);//TODO position to avoid auto-adjust
-  sprite->y=herorow*TILE_H_MM-sprite->h;
-}
-
 /* Receive input.
  */
  

@@ -34,10 +34,10 @@ void game_render();
 struct sprite *sprite_new();
 uint8_t sprite_is_grounded(const struct sprite *sprite);
 int16_t sprite_move_horz(struct sprite *sprite,int16_t dx); // => actual movement
+int16_t sprite_move_vert(struct sprite *sprite,int16_t dy); // => actual movement
 void sprite_get_render_position(int16_t *x,int16_t *y,const struct sprite *sprite);
 
 struct sprite *game_get_hero();
-struct sprite *game_hero_init();
 
 void sprite_input_ivan(struct sprite *sprite,uint8_t input,uint8_t pvinput);
 void sprite_update_ivan(struct sprite *sprite);

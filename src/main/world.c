@@ -24,26 +24,31 @@ struct image thumbnail={
  */
  
 void grid_default() {
+
   int16_t horizon=WORLD_H_TILES>>1;
   int16_t skysize=WORLD_W_TILES*horizon;
   memset(grid,0x00,skysize);
   memset(grid+skysize,0x2e,WORLD_W_TILES);
   memset(grid+skysize+WORLD_W_TILES,0x2f,sizeof(grid)-WORLD_W_TILES-skysize);
   
-  // XXX TEMP
-  grid[WORLD_W_TILES*horizon]=0x01;
-  #define WALL(x,y) grid[(y)*WORLD_W_TILES+(x)]=0x20;
-  WALL(20,15)
-  WALL(24,15)
-  WALL(24,14)
-  WALL(28,15)
-  WALL(28,14)
-  WALL(28,13)
-  #undef WALL
+  // Truck.
+  grid[WORLD_W_TILES*14+10]=0x01;
+  grid[WORLD_W_TILES*14+11]=0x30;
+  grid[WORLD_W_TILES*15+10]=0x31;
+  grid[WORLD_W_TILES*15+11]=0x32;
+  grid[WORLD_W_TILES*15+12]=0x33;
+  grid[WORLD_W_TILES*15+13]=0x34;
+  grid[WORLD_W_TILES*15+14]=0x35;
   
-  grid[WORLD_W_TILES*15+38]=0x10;//brick
-  grid[WORLD_W_TILES*15+40]=0x11;//barrel
-  grid[WORLD_W_TILES*15+42]=0x12;//statue
+  // Little hill with statue on top -- statue must start higher than truck.
+  grid[WORLD_W_TILES*16+45]=0x2f;
+  grid[WORLD_W_TILES*16+46]=0x2f;
+  grid[WORLD_W_TILES*16+47]=0x2f;
+  grid[WORLD_W_TILES*15+45]=0x2c;
+  grid[WORLD_W_TILES*15+46]=0x2f;
+  grid[WORLD_W_TILES*15+47]=0x2a;
+  grid[WORLD_W_TILES*14+46]=0x28;
+  grid[WORLD_W_TILES*13+46]=0x12;
 }
 
 /* Update camera.

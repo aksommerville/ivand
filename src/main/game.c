@@ -23,19 +23,37 @@ void game_begin() {
   
   grid_default();
   thumbnail_draw();
-  //TODO init, setup
   
   memset(spritev,0,sizeof(spritev));
-  game_hero_init();
-  
-  //XXX TEMP add some sprites
   struct sprite *sprite;
+  
+  // Ivan.
+  if (sprite=sprite_new()) {
+    sprite->controller=SPRITE_CONTROLLER_IVAN;
+    sprite->w=TILE_W_MM;
+    sprite->h=11*MM_PER_PIXEL;
+    int16_t herocol=WORLD_W_TILES>>1;
+    int16_t herorow=WORLD_H_TILES>>1;
+    sprite->x=herocol*TILE_W_MM;
+    sprite->y=herorow*TILE_H_MM-sprite->h;
+  }
+  
+  // The Shovel.
   if (sprite=sprite_new()) {
     sprite->controller=SPRITE_CONTROLLER_SHOVEL;
     sprite->w=13*MM_PER_PIXEL;
     sprite->h=5*MM_PER_PIXEL;
     sprite->x=35*TILE_W_MM;
     sprite->y=16*TILE_H_MM-sprite->h-(2*MM_PER_PIXEL);
+  }
+  
+  // The Guard.
+  if (sprite=sprite_new()) {
+    sprite->controller=SPRITE_CONTROLLER_GUARD;
+    sprite->w=5*MM_PER_PIXEL;
+    sprite->h=11*MM_PER_PIXEL;
+    sprite->x=40*TILE_W_MM;
+    sprite->y=(WORLD_H_TILES>>1)*TILE_H_MM-sprite->h;
   }
 }
 

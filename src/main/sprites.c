@@ -62,7 +62,7 @@ int16_t sprite_move_horz(struct sprite *sprite,int16_t dx) {
   // If there's a grid collision, clamp to the next column boundary.
   if (grid_contains_any_solid(ckx,sprite->y,ckw,sprite->h)) {
     if (dx<0) {
-      dx=TILE_W_MM-sprite->x%TILE_W_MM;
+      dx=-sprite->x%TILE_W_MM;
       if (dx==TILE_W_MM) return 0;
     } else {
       int16_t rightx=sprite->x+sprite->w+dx;
@@ -82,6 +82,32 @@ int16_t sprite_move_horz(struct sprite *sprite,int16_t dx) {
   return dx;
 }
 
+/* Move vertically.
+ */
+
+int16_t sprite_move_vert(struct sprite *sprite,int16_t dy) {
+
+  // Upward motion is free (and null motion obviously)
+  if (dy<=0) return dy;
+  
+  // Restrict to 1 tile/frame.
+  if (dy>TILE_H_MM) dy=TILE_H_MM;
+  
+  // Measure the space newly covered.
+  int16_t cky=sprite->y+sprite->h;
+  
+  // If there's a grid collision, clamp to the next row boundary.
+  if (grid_contains_any_solid(sprite->x,cky,sprite->w,dy)) {
+    int16_t bottomy=cky+dy;
+    int16_t wally=bottomy-bottomy%TILE_H_MM;
+    if (!(dy=wally-sprite->h-sprite->y)) return 0;
+  }
+  
+  // Commit.
+  sprite->y+=dy;
+  return dy;
+}
+
 /* Render position.
  */
  
@@ -99,17 +125,6 @@ void sprite_get_render_position(int16_t *x,int16_t *y,const struct sprite *sprit
  */
  
 void sprite_render_dummy(struct sprite *sprite) {
-//TODO
-}
-
-/* Guard.
- */
-
-void sprite_update_guard(struct sprite *sprite) {
-//TODO
-}
-
-void sprite_render_guard(struct sprite *sprite) {
 //TODO
 }
 

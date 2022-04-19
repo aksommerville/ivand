@@ -61,7 +61,15 @@ void image_blit_colorkey_flop(
   const struct image *src,int16_t srcx,int16_t srcy,
   int16_t w,int16_t h
 ) {
-  PREBLIT
+
+  // Not quite PREBLIT, we have to switch some things.
+  if (!dst||!src) return;
+  if (dstx<0) { w+=dstx; dstx=0; }
+  if (dsty<0) { srcy-=dsty; h+=dsty; dsty=0; }
+  if (dstx>dst->w-w) { srcx+=dstx+w-dst->w; w=dst->w-dstx; }
+  if (dsty>dst->h-h) h=dst->h-dsty;
+  if ((w<1)||(h<1)) return;
+  
   uint16_t *dstrow=dst->v+dsty*dst->stride+dstx;
   const uint16_t *srcrow=src->v+srcy*src->stride+srcx+w-1;
   int yi=h;
