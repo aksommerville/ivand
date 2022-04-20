@@ -132,7 +132,6 @@ void sprite_render_dummy(struct sprite *sprite) {
  */
  
 #define SHOVEL_ANIMCLOCK (sprite->opaque[0])
-#define SHOVEL_TATTLE (sprite->opaque[1]) /* NB: Ivan cheats and accesses this directly */
  
 void sprite_render_shovel(struct sprite *sprite) {
 
@@ -146,14 +145,6 @@ void sprite_render_shovel(struct sprite *sprite) {
   int16_t x,y;
   sprite_get_render_position(&x,&y,sprite);
   image_blit_colorkey(&fb,x,y,&fgbits,0+frame*13,12,13,5);
-  
-  if (SHOVEL_TATTLE) {
-    int16_t midx=x+(sprite->w>>1)/MM_PER_PIXEL;
-    int16_t bubblew=40;
-    render_dialogue_bubble(midx-(bubblew>>1),y-19,bubblew,14,midx);
-    image_blit_colorkey(&fb,midx-17,y-16,&fgbits,15,28,5,5);
-    image_blit_string(&fb,midx-9,y-17,"Pick up",7,0x0000,font);
-  }
 }
 
 #undef SHOVEL_ANIMCLOCK

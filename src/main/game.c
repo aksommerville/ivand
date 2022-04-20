@@ -8,6 +8,9 @@
 
 /* Globals.
  */
+ 
+static uint8_t tattle=TATTLE_NONE;
+static int16_t tattlex,tattley;
 
 /* End.
  */
@@ -72,6 +75,7 @@ void game_input(uint8_t input,uint8_t pvinput) {
  */
  
 void game_update() {
+  tattle=TATTLE_NONE;
   struct sprite *sprite=spritev;
   uint8_t i=SPRITE_LIMIT;
   for (;i-->0;sprite++) switch (sprite->controller) {
@@ -80,6 +84,19 @@ void game_update() {
   }
   //TODO master clock
   //TODO other global game update stuff?
+}
+
+/* Request tattle.
+ */
+ 
+void set_tattle(int16_t x,int16_t y,uint8_t reqtattle) {
+  
+  // Tattle IDs are arranged such that higher is more significant.
+  if (reqtattle<=tattle) return;
+  
+  tattle=reqtattle;
+  tattlex=x/MM_PER_PIXEL;
+  tattley=y/MM_PER_PIXEL;
 }
 
 /* Render dialogue bubble.
@@ -109,6 +126,50 @@ void render_dialogue_bubble(int16_t x,int16_t y,int16_t w,int16_t h,int16_t focu
   // Focus. It's 3 pixels high, not 2, the top row overwrites the bubble's bottom edge.
   image_blit_colorkey(&fb,focusx-1,y+h-3,&fgbits,1,25,3,3);
   
+}
+
+static void render_tattle() {
+  switch (tattle) {
+
+    case TATTLE_SHOVEL: {
+        int16_t dstw=40;
+        int16_t dsth=14;
+        int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
+        int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
+        render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
+        image_blit_colorkey(&fb,dstx+3,dsty+3,&fgbits,15,28,5,5);
+        image_blit_string(&fb,dstx+11,dsty+2,"Pick up",7,0x0000,font);
+      } break;
+      
+    case TATTLE_PICKUP: {
+        int16_t dstw=40;
+        int16_t dsth=14;
+        int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
+        int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
+        if (
+          (camera.x+camera.w>WORLD_W_MM)&&
+          (dstx+dstw<=0)
+        ) dstx+=WORLD_W_PIXELS;
+        render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
+        image_blit_colorkey(&fb,dstx+3,dsty+3,&fgbits,10,28,5,5);
+        image_blit_string(&fb,dstx+11,dsty+2,"Pick up",7,0x0000,font);
+      } break;
+      
+    case TATTLE_TRUCK: {//TODO
+      } break;
+      
+    case TATTLE_HOLE: {
+      } break;
+      
+    case TATTLE_WALL: {
+      } break;
+      
+    case TATTLE_STATUE: {
+      } break;
+      
+    case TATTLE_BARREL: {
+      } break;
+  }
 }
 
 /* Render thumbnail ornaments.
@@ -179,9 +240,13 @@ void game_render() {
     }
   }
   
-  // Overlay.
+  // Thumbnail.
   image_blit_opaque(&fb,fb.w-thumbnail.w,0,&thumbnail,0,0,thumbnail.w,thumbnail.h);
   game_render_thumbnail_ornaments();
+  
+  // Tattle.
+  render_tattle();
+  
   //TODO clock
   //TODO tasks, danger...?
 }

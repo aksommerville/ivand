@@ -23,9 +23,10 @@
 
 - [x] Bricks and barrels
 - [x] World map thumbnail
+- [x] Move tattle rendering to global game (draw in front of thumbnail)
 - [ ] Clock
 - [ ] Truck deliveries
-- [ ] Guards
+- [x] Guards
 - [ ] Statue
 - [ ] Sound effects
 - [ ] Main menu

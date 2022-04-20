@@ -15,10 +15,6 @@
 #define CARRYING_STATUE 4
 #define CARRYING_BARREL 5
 
-#define TATTLE_NONE 0
-#define TATTLE_SHOVEL 1
-#define TATTLE_PICKUP 2 /* for grid pickups (brick,barrel,statue) */
-
 /* Object definition.
  */
  
@@ -34,7 +30,6 @@ struct sprite_ivan {
   uint8_t animframe;
   uint8_t jumppower;
   uint8_t carrying; // either the shovel or a block over my head, or nothing
-  uint8_t tattle; // nonzero if some context-sensitive message is displayed
 };
 
 #define SPRITE ((struct sprite_ivan*)sprite)
@@ -130,24 +125,11 @@ static void ivan_update_jump(struct sprite *sprite) {
 /* Tattle.
  */
 
-// We are carrying somthing but a tattle is still up. Dismiss it.
-static void ivan_dismiss_tattle(struct sprite *sprite) {
-  switch (SPRITE->tattle) {
-    case TATTLE_SHOVEL: {
-        struct sprite *other=spritev;
-        uint8_t i=SPRITE_LIMIT;
-        for (;i-->0;other++) {
-          if (other->controller!=SPRITE_CONTROLLER_SHOVEL) continue;
-          other->opaque[1]=0;
-          break;
-        }
-      } break;
-  }
-  SPRITE->tattle=TATTLE_NONE;
-}
-
-// We are not carrying anything; set the most appropriate tattle.
 static void ivan_check_tattle(struct sprite *sprite) {
+
+  // No tattles from us if we're carrying something.
+  if (SPRITE->carrying) return;
+  
   int16_t midx=sprite->x+(sprite->w>>1);
   int16_t midy=sprite->y+(sprite->h>>1);
   
@@ -161,9 +143,7 @@ static void ivan_check_tattle(struct sprite *sprite) {
     if (midy>=other->y+other->h) continue;
     switch (other->controller) {
       case SPRITE_CONTROLLER_SHOVEL: {
-          if (SPRITE->tattle!=TATTLE_SHOVEL) ivan_dismiss_tattle(sprite);
-          SPRITE->tattle=TATTLE_SHOVEL; 
-          other->opaque[1]=1;
+          set_tattle(other->x+(other->w>>1),other->y,TATTLE_SHOVEL);
         } return;
     }
   }
@@ -178,32 +158,35 @@ static void ivan_check_tattle(struct sprite *sprite) {
         switch (tile) {
           case 0x10: 
           case 0x11: 
-          case 0x12: if (SPRITE->tattle!=TATTLE_PICKUP) ivan_dismiss_tattle(sprite); SPRITE->tattle=TATTLE_PICKUP; return;
+          case 0x12: {
+            set_tattle(col*TILE_W_MM+(TILE_W_MM>>1),row*TILE_H_MM-(12*MM_PER_PIXEL),TATTLE_PICKUP);
+          } return;
         }
       }
     }
   }
-  
-  if (SPRITE->tattle) ivan_dismiss_tattle(sprite);
 }
 
 /* Shovel actions.
  */
  
-static void ivan_pickup_shovel(struct sprite *sprite) {
-  if (SPRITE->carrying!=CARRYING_NONE) return; // will never happen but play it safe
-  SPRITE->carrying=CARRYING_SHOVEL;
-  SPRITE->tattle=TATTLE_NONE;
-  
-  // There can never be more than one shovel sprite. If that changes, update this:
+static uint8_t ivan_pickup_shovel(struct sprite *sprite) {
+  if (SPRITE->carrying!=CARRYING_NONE) return 0;
+  int16_t x=sprite->x+(sprite->w>>1);
+  int16_t y=sprite->y+(sprite->h>>1);
   struct sprite *shovel=spritev;
   uint8_t i=SPRITE_LIMIT;
   for (;i-->0;shovel++) {
-    if (shovel->controller==SPRITE_CONTROLLER_SHOVEL) {
-      shovel->controller=SPRITE_CONTROLLER_NONE;
-      break;
-    }
+    if (shovel->controller!=SPRITE_CONTROLLER_SHOVEL) continue;
+    if (x<shovel->x) continue;
+    if (y<shovel->y) continue;
+    if (x>=shovel->x+shovel->w) continue;
+    if (y>=shovel->y+shovel->h) continue;
+    shovel->controller=SPRITE_CONTROLLER_NONE;
+    SPRITE->carrying=CARRYING_SHOVEL;
+    return 1;
   }
+  return 0;
 }
  
 static void ivan_drop_shovel(struct sprite *sprite) {
@@ -212,7 +195,6 @@ static void ivan_drop_shovel(struct sprite *sprite) {
   if (!sprite_is_grounded(sprite)) return;
   
   SPRITE->carrying=CARRYING_NONE;
-  // Tattle will take care of itself; leave unset.
   
   struct sprite *shovel=sprite_new();
   if (shovel) {
@@ -307,10 +289,9 @@ static void ivan_drop(struct sprite *sprite) {
  
 static void ivan_check_actions(struct sprite *sprite) {
 
-  // We're tattling a shovel and he pressed up: pick it up. (implicitly CARRYING_NONE in this case)
-  if ((SPRITE->tattle==TATTLE_SHOVEL)&&(SPRITE->dyimpulse<0)) {
-    ivan_pickup_shovel(sprite);
-    return;
+  // Pick up shovel?
+  if ((SPRITE->dyimpulse<0)&&!SPRITE->carrying) {
+    if (ivan_pickup_shovel(sprite)) return;
   }
   
   // UP while carrying an empty shovel: drop it. Note that you can't drop a loaded shovel.
@@ -341,8 +322,7 @@ static void ivan_check_actions(struct sprite *sprite) {
 void sprite_update_ivan(struct sprite *sprite) {
   ivan_update_walk(sprite);
   ivan_update_jump(sprite);
-  if (SPRITE->carrying==CARRYING_NONE) ivan_check_tattle(sprite);
-  else if (SPRITE->tattle!=TATTLE_NONE) ivan_dismiss_tattle(sprite);
+  ivan_check_tattle(sprite);
   ivan_check_actions(sprite);
   
   // Clear impulse inputs.
@@ -429,28 +409,6 @@ void sprite_render_ivan(struct sprite *sprite) {
           image_blit_colorkey_flop(&fb,x+2,y-1,&fgbits,30,28,3,5);
         } else {
           image_blit_colorkey(&fb,x,y-1,&fgbits,30,28,3,5);
-        }
-      } break;
-  }
-  
-  // Shovel draws its own tattle, but we draw the grid-anchored ones.
-  switch (SPRITE->tattle) {
-    case TATTLE_PICKUP: {
-        int16_t col=(sprite->x+(sprite->w>>1))/TILE_W_MM;
-        if (col>=WORLD_W_TILES) col-=WORLD_W_TILES;
-        int16_t row=(sprite->y+sprite->h+(TILE_H_MM>>1))/TILE_H_MM;
-        if ((col>=0)&&(row>=0)&&(col<WORLD_W_TILES)&&(row<WORLD_H_TILES)) {
-          int16_t dstw=40;
-          int16_t dsth=14;
-          int16_t dstx=col*TILE_W_PIXELS-(camera.x/MM_PER_PIXEL)+(TILE_W_PIXELS>>1)-(dstw>>1);
-          int16_t dsty=row*TILE_H_PIXELS-(camera.y/MM_PER_PIXEL)-12-dsth;
-          if (
-            (camera.x+camera.w>WORLD_W_MM)&&
-            (dstx+dstw<=0)
-          ) dstx+=WORLD_W_PIXELS;
-          render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
-          image_blit_colorkey(&fb,dstx+3,dsty+3,&fgbits,10,28,5,5);
-          image_blit_string(&fb,dstx+11/*?*/,dsty+2,"Pick up",7,0x0000,font);
         }
       } break;
   }

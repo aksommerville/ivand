@@ -23,6 +23,15 @@ extern uint32_t framec;
 #define DIR_E    0x04
 #define DIR_S    0x08
 
+#define TATTLE_NONE 0
+#define TATTLE_SHOVEL 1
+#define TATTLE_PICKUP 2
+#define TATTLE_TRUCK 3
+#define TATTLE_HOLE 4
+#define TATTLE_WALL 5
+#define TATTLE_STATUE 6
+#define TATTLE_BARREL 7
+
 void game_end();
 
 void game_begin();
@@ -54,5 +63,10 @@ void sprite_render_shovel(struct sprite *sprite);
  * Leave a 2-pixel margin around your content. (4 pixels at the bottom)
  */
 void render_dialogue_bubble(int16_t x,int16_t y,int16_t w,int16_t h,int16_t focusx);
+
+/* Request that a tattle be rendered on the top, at world position (x,y)mm.
+ * You have to re-request it every frame.
+ */
+void set_tattle(int16_t x,int16_t y,uint8_t tattle);
 
 #endif
