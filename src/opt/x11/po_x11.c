@@ -330,6 +330,7 @@ int po_x11_set_fullscreen(struct po_x11 *x11,int state) {
  */
  
 void po_x11_inhibit_screensaver(struct po_x11 *x11) {
+  if (!x11) return;
   if (x11->screensaver_inhibited) return;
   XForceScreenSaver(x11->dpy,ScreenSaverReset);
   x11->screensaver_inhibited=1;

@@ -5,10 +5,10 @@ PO_NATIVE_PLATFORM:=linux
 
 ifeq ($(PO_NATIVE_PLATFORM),linux) #-----------------------------------------------
 
-  CC_NATIVE:=gcc -c -MMD -O2 -Isrc -Isrc/main -Werror -Wimplicit -DPO_NATIVE=1
+  CC_NATIVE:=gcc -c -MMD -O2 -Isrc -Isrc/main -Werror -Wimplicit -DPO_NATIVE=1 -I/usr/include/libdrm
   LD_NATIVE:=gcc
-  LDPOST_NATIVE:=-lm -lz -lasound -lX11 -lpthread
-  OPT_ENABLE_NATIVE:=genioc alsa x11 evdev
+  LDPOST_NATIVE:=-lm -lz -lasound -lX11 -lpthread -ldrm
+  OPT_ENABLE_NATIVE:=genioc alsa x11 evdev drmfb
   OPT_ENABLE_TOOL:=alsa ossmidi inotify
   EXE_NATIVE:=out/native/pokorc
 

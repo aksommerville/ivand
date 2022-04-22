@@ -170,7 +170,7 @@ static int mkwave_line(double *dst,double *scratch,int c,const char *src,int src
       return -1; \
     } \
     if (sr_float_eval(&(name),token,tokenc)<0) { \
-      fprintf(stderr,"%s:%d: Failed to evaluate '%s' as float for '%s'\n",path,lineno,tokenc,token,desc); \
+      fprintf(stderr,"%s:%d: Failed to evaluate '%.*s' as float for '%s'\n",path,lineno,tokenc,token,desc); \
       return -1; \
     } \
   }
@@ -184,7 +184,7 @@ static int mkwave_line(double *dst,double *scratch,int c,const char *src,int src
       return -1; \
     } \
     if (sr_int_eval(&(name),token,tokenc)<1) { \
-      fprintf(stderr,"%s:%d: Failed to evaluate '%s' as int for '%s'\n",path,lineno,tokenc,token,desc); \
+      fprintf(stderr,"%s:%d: Failed to evaluate '%.*s' as int for '%s'\n",path,lineno,tokenc,token,desc); \
       return -1; \
     } \
     if (((name)<lo)||((name)>hi)) { \

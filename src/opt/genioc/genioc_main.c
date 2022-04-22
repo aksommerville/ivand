@@ -10,6 +10,9 @@ static void genioc_quit_drivers() {
   #if PO_USE_x11
     po_x11_del(genioc.x11);
   #endif
+  #if PO_USE_drmfb
+    drmfb_del(genioc.drmfb);
+  #endif
   #if PO_USE_alsa
     alsa_del(genioc.alsa);
   #endif
@@ -98,6 +101,34 @@ static int genioc_cb_evdev(struct po_evdev *evdev,uint8_t btnid,int value) {
 
 #endif
 
+/* Init video driver.
+ */
+
+static int genioc_init_video_driver() {
+  #if PO_USE_x11
+    if (genioc.x11=po_x11_new(
+      "Ivan Denisovich",
+      96,64,0,
+      genioc_cb_x11_button,
+      genioc_cb_x11_close,
+      &genioc
+    )) {
+      fprintf(stderr,"Using X11 for video.\n");
+      return 0;
+    }
+  #endif
+  
+  #if PO_USE_drmfb
+    if (genioc.drmfb=drmfb_new(96,64,60)) {
+      fprintf(stderr,"Using DRM for video.\n");
+      return 0;
+    }
+  #endif
+  
+  fprintf(stderr,"Unable to initialize any video driver.\n");
+  return -1;
+}
+
 /* Init drivers.
  */
  
@@ -105,18 +136,7 @@ static int genioc_init_drivers() {
 
   signal(SIGINT,genioc_rcvsig);
 
-  #if PO_USE_x11
-    if (!(genioc.x11=po_x11_new(
-      "Ivan Denisovich",
-      96,64,0,
-      genioc_cb_x11_button,
-      genioc_cb_x11_close,
-      &genioc
-    ))) {
-      fprintf(stderr,"Failed to initialize X11\n");
-      return -1;
-    }
-  #endif
+  if (genioc_init_video_driver()<0) return -1;
   
   #if PO_USE_alsa
     struct alsa_delegate alsa_delegate={
@@ -152,10 +172,14 @@ uint8_t platform_init() {
  
 uint8_t platform_update() {
   #if PO_USE_x11
-    po_x11_update(genioc.x11);
+    if (genioc.x11) {
+      po_x11_update(genioc.x11);
+    }
   #endif
   #if PO_USE_evdev
-    po_evdev_update(genioc.evdev);
+    if (genioc.evdev) {
+      po_evdev_update(genioc.evdev);
+    }
   #endif
   return genioc.inputstate;
 }
@@ -165,7 +189,16 @@ uint8_t platform_update() {
  
 void platform_send_framebuffer(const void *fb) {
   #if PO_USE_x11
-    po_x11_swap(genioc.x11,fb);
+    if (genioc.x11) {
+      po_x11_swap(genioc.x11,fb);
+      return;
+    }
+  #endif
+  #if PO_USE_drmfb
+    if (genioc.drmfb) {
+      drmfb_swap(genioc.drmfb,fb);
+      return;
+    }
   #endif
 }
 
@@ -203,10 +236,47 @@ int usb_read_byte() {
   return -1;
 }
 
+/* XXX print my generated waves for verification
+ */
+ 
+extern const int16_t wave0[512];
+
+static void XXX_tempmain() {
+  fprintf(stderr,"wave0:\n");
+  
+  int w=128,h=50; // w 128 because it's a factor of 512 (the length of the wave). h arbitrary.
+  int stride=w+1;
+  char *image=malloc(stride*h);
+  memset(image,0x20,stride*h);
+  char *nl=image+w;
+  int i=h;
+  for (;i-->0;nl+=stride) *nl=0x0a;
+  memset(image+(h/2)*stride,'-',w);
+  
+  int samplespercol=512/w;
+  int halfh=h/2;
+  int srcp=0,dstx=0;
+  for (;dstx<w;dstx++) {
+    int sample=0;
+    for (i=samplespercol;i-->0;srcp++) sample+=wave0[srcp];
+    sample/=samplespercol;
+    int y=(sample*halfh)/32768+halfh;
+    y=h-y;
+    if (y<0) y=0;
+    else if (y>=h) y=h-1;
+    image[y*stride+dstx]='X';
+  }
+  
+  fprintf(stderr,"%.*s",(w+1)*h,image);
+  free(image);
+}
+
 /* Main.
  */
 
 int main(int argc,char **argv) {
+  //XXX_tempmain();
+  //return 0;
   if (genioc_init_drivers()<0) {
     fprintf(stderr,"Failed to initialize drivers.\n");
     return 1;
