@@ -24,12 +24,13 @@
 - [x] Bricks and barrels
 - [x] World map thumbnail
 - [x] Move tattle rendering to global game (draw in front of thumbnail)
-- [ ] Clock
+- [x] Clock
+- [ ] Scorekeeping
 - [ ] Truck deliveries
 - [x] Guards
-- [ ] Statue
+- [x] Statue
 - [ ] Sound effects
-- [ ] Main menu
+- [x] Main menu
 - [ ] Tiny menu image
 - [ ] Fairy appears when you're trapped and creates new dirt
 - [ ] Get permission from the Solzhenitsyn estate: https://www.solzhenitsyncenter.org/who-we-are

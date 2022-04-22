@@ -149,3 +149,43 @@ void sprite_render_shovel(struct sprite *sprite) {
 
 #undef SHOVEL_ANIMCLOCK
 #undef SHOVEL_TATTLE
+
+/* Bullet.
+ */
+ 
+#define BULLET_SPEED (MM_PER_PIXEL*2)
+#define BULLET_GRAVITY ((MM_PER_PIXEL*1)/8)
+ 
+void sprite_update_bullet(struct sprite *sprite) {
+
+  int8_t dx=sprite->opaque[0];
+  if (!sprite_move_horz(sprite,dx*BULLET_SPEED)) {
+    sprite->controller=SPRITE_CONTROLLER_NONE;
+    return;
+  }
+  
+  if (!sprite_move_vert(sprite,BULLET_GRAVITY)) {
+    sprite->controller=SPRITE_CONTROLLER_NONE;
+    return;
+  }
+  
+  struct sprite *hero=game_get_hero();
+  if (hero) {
+    int16_t x=sprite->x+(sprite->w>>1);
+    if ((x>=hero->x)&&(x<hero->x+hero->w)) {
+      int16_t y=sprite->y+(sprite->h>>1);
+      if ((y>=hero->y)&&(y<hero->y+hero->h)) {
+        sprite->controller=SPRITE_CONTROLLER_NONE;
+        hero_highlight_injury(hero);
+        injure_hero();
+        return;
+      }
+    }
+  }
+}
+
+void sprite_render_bullet(struct sprite *sprite) {
+  int16_t x,y;
+  sprite_get_render_position(&x,&y,sprite);
+  image_blit_colorkey(&fb,x,y,&fgbits,0,5,2,2);
+}

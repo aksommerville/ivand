@@ -17,6 +17,12 @@ struct sprite;
 extern struct image fb;
 extern struct synth synth;
 extern uint32_t framec;
+extern uint32_t gameclock; // frames; counts down
+extern uint8_t hp;
+
+#define GAME_DURATION_FRAMES (60*60*2)
+
+#define HP_MAX 4
 
 #define DIR_N    0x01
 #define DIR_W    0x02
@@ -47,14 +53,17 @@ int16_t sprite_move_vert(struct sprite *sprite,int16_t dy); // => actual movemen
 void sprite_get_render_position(int16_t *x,int16_t *y,const struct sprite *sprite);
 
 struct sprite *game_get_hero();
+void hero_highlight_injury(struct sprite *sprite);
 
 void sprite_input_ivan(struct sprite *sprite,uint8_t input,uint8_t pvinput);
 void sprite_update_ivan(struct sprite *sprite);
 void sprite_update_guard(struct sprite *sprite);
+void sprite_update_bullet(struct sprite *sprite);
 void sprite_render_ivan(struct sprite *sprite);
 void sprite_render_dummy(struct sprite *sprite);
 void sprite_render_guard(struct sprite *sprite);
 void sprite_render_shovel(struct sprite *sprite);
+void sprite_render_bullet(struct sprite *sprite);
 
 /* Renders a bubble with a downward indicator, you can render text onto it.
  * (x,y,w,h,focusx) all in framebuffer pixels.
@@ -68,5 +77,7 @@ void render_dialogue_bubble(int16_t x,int16_t y,int16_t w,int16_t h,int16_t focu
  * You have to re-request it every frame.
  */
 void set_tattle(int16_t x,int16_t y,uint8_t tattle);
+
+void injure_hero();
 
 #endif

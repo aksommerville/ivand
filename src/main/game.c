@@ -6,11 +6,15 @@
 #include <string.h>
 #include <stdio.h>
 
+#define FADE_OUT_TIME (60*5)
+
 /* Globals.
  */
  
 static uint8_t tattle=TATTLE_NONE;
 static int16_t tattlex,tattley;
+uint32_t gameclock;
+uint8_t hp;
 
 /* End.
  */
@@ -26,6 +30,8 @@ void game_begin() {
   
   grid_default();
   thumbnail_draw();
+  gameclock=GAME_DURATION_FRAMES;
+  hp=HP_MAX;
   
   memset(spritev,0,sizeof(spritev));
   struct sprite *sprite;
@@ -75,14 +81,19 @@ void game_input(uint8_t input,uint8_t pvinput) {
  */
  
 void game_update() {
+
   tattle=TATTLE_NONE;
   struct sprite *sprite=spritev;
   uint8_t i=SPRITE_LIMIT;
   for (;i-->0;sprite++) switch (sprite->controller) {
     case SPRITE_CONTROLLER_IVAN: sprite_update_ivan(sprite); break;
     case SPRITE_CONTROLLER_GUARD: sprite_update_guard(sprite); break;
+    case SPRITE_CONTROLLER_BULLET: sprite_update_bullet(sprite); break;
   }
-  //TODO master clock
+  
+  if (gameclock) gameclock--;
+  //TODO master clock triggers
+  
   //TODO other global game update stuff?
 }
 
@@ -97,6 +108,19 @@ void set_tattle(int16_t x,int16_t y,uint8_t reqtattle) {
   tattle=reqtattle;
   tattlex=x/MM_PER_PIXEL;
   tattley=y/MM_PER_PIXEL;
+}
+
+/* Injure the hero (eg by bullet).
+ */
+ 
+void injure_hero() {
+  if (hp>1) {
+    hp--;
+    //TODO sound effect
+  } else {
+    //TODO forcing end of game, probly some other bookkeeping to take care of here
+    gameclock=0;
+  }
 }
 
 /* Render dialogue bubble.
@@ -155,19 +179,50 @@ static void render_tattle() {
         image_blit_string(&fb,dstx+11,dsty+2,"Pick up",7,0x0000,font);
       } break;
       
-    case TATTLE_TRUCK: {//TODO
+    case TATTLE_TRUCK: {//TODO spacing, verbiage
+        int16_t dstw=24;
+        int16_t dsth=13;
+        int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
+        int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
+        render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
+        image_blit_string(&fb,dstx+3,dsty+2,"Truck",5,0x0000,font);
       } break;
       
-    case TATTLE_HOLE: {
+    case TATTLE_HOLE: {//TODO spacing, verbiage
+        int16_t dstw=40;
+        int16_t dsth=14;
+        int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
+        int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
+        render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
+        image_blit_string(&fb,dstx,dsty,"Dig hole",8,0x0000,font);
       } break;
       
-    case TATTLE_WALL: {
+    case TATTLE_WALL: {//TODO spacing, verbiage
+        int16_t dstw=40;
+        int16_t dsth=14;
+        int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
+        int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
+        render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
+        image_blit_string(&fb,dstx,dsty,"Build wall",10,0x0000,font);
       } break;
       
     case TATTLE_STATUE: {
+        int16_t dstw=40;
+        int16_t dsth=14;
+        int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
+        int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
+        render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
+        image_blit_colorkey(&fb,dstx+2,dsty+2,&fgbits,5,20,8,8);
+        image_blit_string(&fb,dstx+12,dsty+2,"on top",6,0x0000,font);
       } break;
       
-    case TATTLE_BARREL: {
+    case TATTLE_BARREL: {//TODO spacing, verbiage
+        int16_t dstw=40;
+        int16_t dsth=14;
+        int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
+        int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
+        render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
+        image_blit_string(&fb,dstx,dsty,"Bury barrel",11,0x0000,font);
       } break;
   }
 }
@@ -194,6 +249,32 @@ static void game_render_thumbnail_ornaments() {
     y+=y0;
     const uint16_t color=(framec&0x10)?0xffff:0x0000;
     fb.v[y*fb.stride+x]=color;
+  }
+}
+
+/* Render the clock.
+ */
+ 
+static void game_render_clock() {
+  uint32_t sec=gameclock/60;
+  uint32_t min=sec/60;
+  sec%=60;
+  char text[32];
+  int32_t textc=snprintf(text,sizeof(text),"%0d:%02d",min,sec);
+  if (textc>0) {
+    image_blit_string(&fb,1,1,text,textc,0x0000,font);
+  }
+}
+
+/* Render hit points.
+ */
+ 
+static void game_render_hp() {
+  int16_t x=18;
+  uint8_t i=0;
+  for (;i<HP_MAX;i++,x+=6) {
+    int16_t srcx=(i<hp)?7:2;
+    image_blit_colorkey(&fb,x,1,&fgbits,srcx,5,5,4);
   }
 }
 
@@ -237,6 +318,7 @@ void game_render() {
       case SPRITE_CONTROLLER_DUMMY: sprite_render_dummy(sprite); break;
       case SPRITE_CONTROLLER_GUARD: sprite_render_guard(sprite); break;
       case SPRITE_CONTROLLER_SHOVEL: sprite_render_shovel(sprite); break;
+      case SPRITE_CONTROLLER_BULLET: sprite_render_bullet(sprite); break;
     }
   }
   
@@ -244,9 +326,27 @@ void game_render() {
   image_blit_opaque(&fb,fb.w-thumbnail.w,0,&thumbnail,0,0,thumbnail.w,thumbnail.h);
   game_render_thumbnail_ornaments();
   
+  // Clock.
+  game_render_clock();
+  
+  // HP.
+  game_render_hp();
+  
   // Tattle.
   render_tattle();
   
-  //TODO clock
-  //TODO tasks, danger...?
+  // Fade out near the end.
+  if (gameclock<FADE_OUT_TIME) {
+    int8_t fade=20-(gameclock*20)/FADE_OUT_TIME;
+    if (fade>0) {
+      uint16_t *p=fb.v;
+      uint16_t fi=fb.w*fb.h;
+      for (;fi-->0;p++) {
+        uint8_t y=((*p)>>8)&0x1f;
+        if (y>fade) y-=fade;
+        else y=0;
+        *p=(y<<8)|(y<<3)|(y>>2)|(y<<13);
+      }
+    }
+  }
 }

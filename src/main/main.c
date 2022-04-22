@@ -49,8 +49,29 @@ void loop() {
   }
   
   switch (mainstate) {
-    case MAINSTATE_GAME: game_update(); game_render(); break;
-    case MAINSTATE_MENU: menu_update(); menu_render(); break;
+  
+    case MAINSTATE_GAME: {
+        game_update();
+        game_render();
+        if (!gameclock) {
+          mainstate=MAINSTATE_MENU;
+          game_end();
+          menu_begin();
+        }
+      } break;
+      
+    case MAINSTATE_MENU: {
+        uint8_t outcome=menu_update();
+        menu_render();
+        switch (outcome) {
+          case MENU_UPDATE_GAME: {
+              mainstate=MAINSTATE_GAME;
+              menu_end();
+              game_begin();
+            } break;
+        }
+      } break;
+  
     default: memset(fb.v,0,fb.w*fb.h*2);
   }
   
@@ -73,6 +94,8 @@ void setup() {
   synth.wavev[7]=wave7;
   
   //TODO Starting game immediately during initial work. Eventually should have a menu here.
-  game_begin(&fb,&synth);
-  mainstate=MAINSTATE_GAME;
+  //game_begin();
+  //mainstate=MAINSTATE_GAME;
+  menu_begin();
+  mainstate=MAINSTATE_MENU;
 }

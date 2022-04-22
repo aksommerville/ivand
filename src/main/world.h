@@ -55,6 +55,7 @@ extern struct sprite {
 #define SPRITE_CONTROLLER_DUMMY 2
 #define SPRITE_CONTROLLER_GUARD 3
 #define SPRITE_CONTROLLER_SHOVEL 4
+#define SPRITE_CONTROLLER_BULLET 5
 
 extern struct camera {
   int16_t x,y,w,h; // Boundaries in mm, watch for exceeding left and right world edges.
@@ -87,6 +88,8 @@ uint8_t grid_contains_any_solid(int16_t xmm,int16_t ymm,int16_t wmm,int16_t hmm)
  */
 uint8_t grid_remove_dirt(int16_t x,int16_t y);
 uint8_t grid_add_dirt(int16_t x,int16_t y);
+
+uint8_t grid_cell_buried(int16_t x,int16_t y);
 
 // Draw the whole thumbnail from scratch.
 void thumbnail_draw();

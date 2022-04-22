@@ -18,7 +18,11 @@ void menu_end();
 void menu_begin();
 
 void menu_input(uint8_t input,uint8_t pvinput);
-void menu_update();
+uint8_t menu_update();
 void menu_render();
+
+// menu_update() returns one of these:
+#define MENU_UPDATE_CONTINUE 0 /* Stay in the menu. */
+#define MENU_UPDATE_GAME     1 /* Begin the game. */
 
 #endif

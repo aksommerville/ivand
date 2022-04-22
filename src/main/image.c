@@ -107,10 +107,11 @@ uint8_t image_blit_glyph(
     }
     uint16_t *dstp=dstrow;
     uint8_t xi=srcw;
-    for (;xi-->0;dstp++,mask>>=1) {
+    int16_t finalx=dstx;
+    for (;xi-->0;dstp++,mask>>=1,finalx++) {
       if (!mask) return srcw+1;
       if (glyph&mask) {
-        if ((dstx>=0)&&(dstx<dst->w)) {
+        if ((finalx>=0)&&(finalx<dst->w)) {
           *dstp=color;
         }
       }

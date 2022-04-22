@@ -7,6 +7,7 @@
 #define WALK_SPEED MM_PER_PIXEL
 #define WALK_FRAME_TIME 5
 #define JUMP_POWER_MAX 12
+#define INJURY_TIME 30
 
 #define CARRYING_NONE 0
 #define CARRYING_SHOVEL 1
@@ -30,6 +31,7 @@ struct sprite_ivan {
   uint8_t animframe;
   uint8_t jumppower;
   uint8_t carrying; // either the shovel or a block over my head, or nothing
+  uint8_t injury_highlight;
 };
 
 #define SPRITE ((struct sprite_ivan*)sprite)
@@ -325,6 +327,8 @@ void sprite_update_ivan(struct sprite *sprite) {
   ivan_check_tattle(sprite);
   ivan_check_actions(sprite);
   
+  if (SPRITE->injury_highlight) SPRITE->injury_highlight--;
+  
   // Clear impulse inputs.
   SPRITE->dyimpulse=0;
   SPRITE->inaux=0;
@@ -339,6 +343,9 @@ void sprite_render_ivan(struct sprite *sprite) {
   x+=1;
   
   uint8_t headframe=0,torsoframe=0,legframe=0;
+  
+  int16_t addy=0;
+  if (SPRITE->injury_highlight&4) addy=33;
   
   // Animate legs if walking: 0..3
   if (SPRITE->dx) {
@@ -367,13 +374,13 @@ void sprite_render_ivan(struct sprite *sprite) {
   
   // Draw head, torso, and legs.
   if (SPRITE->facedir<0) {
-    image_blit_colorkey_flop(&fb,x-2,y+4,&fgbits,22+torsoframe*9,0,9,5);
-    image_blit_colorkey_flop(&fb,x-1,y+8,&fgbits,legframe*7,9,7,3);
-    image_blit_colorkey_flop(&fb,x,y,&fgbits,headframe*5,0,5,5);
+    image_blit_colorkey_flop(&fb,x-2,y+4,&fgbits,22+torsoframe*9,addy,9,5);
+    image_blit_colorkey_flop(&fb,x-1,y+8,&fgbits,legframe*7,9+addy,7,3);
+    image_blit_colorkey_flop(&fb,x,y,&fgbits,headframe*5,addy,5,5);
   } else {
-    image_blit_colorkey(&fb,x-2,y+4,&fgbits,22+torsoframe*9,0,9,5);
-    image_blit_colorkey(&fb,x-1,y+8,&fgbits,legframe*7,9,7,3);
-    image_blit_colorkey(&fb,x,y,&fgbits,headframe*5,0,5,5);
+    image_blit_colorkey(&fb,x-2,y+4,&fgbits,22+torsoframe*9,addy,9,5);
+    image_blit_colorkey(&fb,x-1,y+8,&fgbits,legframe*7,9+addy,7,3);
+    image_blit_colorkey(&fb,x,y,&fgbits,headframe*5,addy,5,5);
   }
   
   // Draw the carry item, and forward arm if needed.
@@ -384,14 +391,14 @@ void sprite_render_ivan(struct sprite *sprite) {
     case CARRYING_SHOVEL_FULL: {
         int16_t dirtx;
         if (SPRITE->facedir<0) {
-          image_blit_colorkey_flop(&fb,x-7,y+6,&fgbits,0,17,14,3);
+          image_blit_colorkey_flop(&fb,x-7,y+6,&fgbits,0,17+addy,14,3);
           dirtx=x-7;
         } else {
-          image_blit_colorkey(&fb,x-1,y+6,&fgbits,0,17,14,3);
+          image_blit_colorkey(&fb,x-1,y+6,&fgbits,0,17+addy,14,3);
           dirtx=x+8;
         }
         if (SPRITE->carrying==CARRYING_SHOVEL_FULL) {
-          image_blit_colorkey(&fb,dirtx,y+3,&fgbits,17,0,5,5);
+          image_blit_colorkey(&fb,dirtx,y+3,&fgbits,17,addy,5,5);
         }
       } break;
     
@@ -406,10 +413,17 @@ void sprite_render_ivan(struct sprite *sprite) {
           image_blit_opaque(&fb,dstx,y-8,&bgtiles,(tileid&0x0f)*TILE_W_PIXELS,(tileid>>4)*TILE_H_PIXELS,8,8);
         }
         if (SPRITE->facedir<0) { // forward arm
-          image_blit_colorkey_flop(&fb,x+2,y-1,&fgbits,30,28,3,5);
+          image_blit_colorkey_flop(&fb,x+2,y-1,&fgbits,30,28+addy,3,5);
         } else {
-          image_blit_colorkey(&fb,x,y-1,&fgbits,30,28,3,5);
+          image_blit_colorkey(&fb,x,y-1,&fgbits,30+(addy?3:0),28,3,5);
         }
       } break;
   }
+}
+
+/* Set injury highlight.
+ */
+ 
+void hero_highlight_injury(struct sprite *sprite) {
+  SPRITE->injury_highlight=INJURY_TIME;
 }

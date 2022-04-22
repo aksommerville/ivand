@@ -31,7 +31,7 @@ void grid_default() {
   memset(grid+skysize,0x2e,WORLD_W_TILES);
   memset(grid+skysize+WORLD_W_TILES,0x2f,sizeof(grid)-WORLD_W_TILES-skysize);
   
-  // Truck.
+  // Truck. Update sprite_guard.c:violation_truck() if you move it.
   grid[WORLD_W_TILES*14+10]=0x01;
   grid[WORLD_W_TILES*14+11]=0x30;
   grid[WORLD_W_TILES*15+10]=0x31;
@@ -221,6 +221,31 @@ uint8_t grid_add_dirt(int16_t x,int16_t y) {
   if ((y<WORLD_H_TILES-1)&&(grid[p+WORLD_W_TILES]<0x10)) return 0; // Next row down must be solid.
   grid[p]=0x20;
   grid_join_neighbors(x,y);
+  return 1;
+}
+
+/* Check whether a given cell is surrounded by dirt.
+ */
+ 
+uint8_t grid_cell_buried(int16_t x,int16_t y) {
+  if (x<0) x+=WORLD_W_TILES;
+  if (x>=WORLD_W_TILES) x-=WORLD_W_TILES;
+  // y in (1..WORLD_H_TILES-1): It can't be on the top, but we'll pretend everything below the world is dirt.
+  if ((x<0)||(y<1)||(x>=WORLD_W_TILES)||(y>=WORLD_H_TILES)) return 0;
+  
+  int16_t lx=x?(x-1):(WORLD_W_TILES-1);
+  int16_t rx=x+1; if (rx>=WORLD_W_TILES) rx=0;
+  
+  if (!grid_tile_is_dirt(grid[(y-1)*WORLD_W_TILES+lx])) return 0;
+  if (!grid_tile_is_dirt(grid[(y-1)*WORLD_W_TILES+x])) return 0;
+  if (!grid_tile_is_dirt(grid[(y-1)*WORLD_W_TILES+rx])) return 0;
+  if (!grid_tile_is_dirt(grid[y*WORLD_W_TILES+lx])) return 0;
+  if (!grid_tile_is_dirt(grid[y*WORLD_W_TILES+rx])) return 0;
+  if (y<WORLD_H_TILES-1) {
+    if (!grid_tile_is_dirt(grid[(y+1)*WORLD_W_TILES+lx])) return 0;
+    if (!grid_tile_is_dirt(grid[(y+1)*WORLD_W_TILES+x])) return 0;
+    if (!grid_tile_is_dirt(grid[(y+1)*WORLD_W_TILES+rx])) return 0;
+  }
   return 1;
 }
 
