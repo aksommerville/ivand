@@ -113,14 +113,17 @@ void set_tattle(int16_t x,int16_t y,uint8_t reqtattle) {
 /* Injure the hero (eg by bullet).
  */
  
-void injure_hero() {
+void injure_hero(struct sprite *sprite) {
+  if (!hp) return;
+  if (!sprite) sprite=game_get_hero();
   if (hp>1) {
     hp--;
     //TODO sound effect
   } else {
-    //TODO forcing end of game, probly some other bookkeeping to take care of here
-    gameclock=0;
+    hp=0;
+    if (gameclock>250) gameclock=250;
   }
+  if (sprite) hero_highlight_injury(sprite);
 }
 
 /* Render dialogue bubble.
@@ -327,7 +330,7 @@ void game_render() {
   game_render_thumbnail_ornaments();
   
   // Clock.
-  game_render_clock();
+  if (hp) game_render_clock();
   
   // HP.
   game_render_hp();

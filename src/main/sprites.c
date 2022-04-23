@@ -176,8 +176,7 @@ void sprite_update_bullet(struct sprite *sprite) {
       int16_t y=sprite->y+(sprite->h>>1);
       if ((y>=hero->y)&&(y<hero->y+hero->h)) {
         sprite->controller=SPRITE_CONTROLLER_NONE;
-        hero_highlight_injury(hero);
-        injure_hero();
+        injure_hero(hero);
         return;
       }
     }

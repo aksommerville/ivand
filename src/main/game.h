@@ -78,6 +78,6 @@ void render_dialogue_bubble(int16_t x,int16_t y,int16_t w,int16_t h,int16_t focu
  */
 void set_tattle(int16_t x,int16_t y,uint8_t tattle);
 
-void injure_hero();
+void injure_hero(struct sprite *sprite);
 
 #endif

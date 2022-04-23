@@ -31,6 +31,7 @@
 - [x] Statue
 - [ ] Sound effects
 - [x] Main menu
+- [x] Death animation, don't just hop to the menu immediately.
 - [ ] Tiny menu image
 - [ ] Fairy appears when you're trapped and creates new dirt
 - [ ] Get permission from the Solzhenitsyn estate: https://www.solzhenitsyncenter.org/who-we-are

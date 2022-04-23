@@ -322,12 +322,15 @@ static void ivan_check_actions(struct sprite *sprite) {
  */
  
 void sprite_update_ivan(struct sprite *sprite) {
-  ivan_update_walk(sprite);
-  ivan_update_jump(sprite);
-  ivan_check_tattle(sprite);
-  ivan_check_actions(sprite);
-  
-  if (SPRITE->injury_highlight) SPRITE->injury_highlight--;
+
+  if (hp) {
+    ivan_update_walk(sprite);
+    ivan_update_jump(sprite);
+    ivan_check_tattle(sprite);
+    ivan_check_actions(sprite);
+    if (SPRITE->injury_highlight) SPRITE->injury_highlight--;
+  } else {
+  }
   
   // Clear impulse inputs.
   SPRITE->dyimpulse=0;
@@ -341,6 +344,17 @@ void sprite_render_ivan(struct sprite *sprite) {
   int16_t x,y;
   sprite_get_render_position(&x,&y,sprite);
   x+=1;
+  
+  // Draw the death sequence if appropriate, it's completely different.
+  if (!hp) {
+    SPRITE->animclock++;
+    if (SPRITE->animclock>=4) {
+      SPRITE->animclock=0;
+      if (SPRITE->animframe<10) SPRITE->animframe++; // 11 frames
+    }
+    image_blit_colorkey(&fb,x-4,y,&fgbits,SPRITE->animframe*11,61,11,11);
+    return;
+  }
   
   uint8_t headframe=0,torsoframe=0,legframe=0;
   
@@ -426,4 +440,8 @@ void sprite_render_ivan(struct sprite *sprite) {
  
 void hero_highlight_injury(struct sprite *sprite) {
   SPRITE->injury_highlight=INJURY_TIME;
+  if (!hp) {
+    SPRITE->animclock=0;
+    SPRITE->animframe=0;
+  }
 }

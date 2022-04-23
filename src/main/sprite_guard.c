@@ -238,8 +238,8 @@ static void guard_update_gun(struct sprite *sprite) {
   }
   
   if (!SPRITE->violation) return;
-  
   if (SPRITE->climbing||SPRITE->jump_power) return;
+  if (!hp) return;
   
   struct sprite *hero=game_get_hero();
   if (!hero) return;
