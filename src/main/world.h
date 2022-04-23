@@ -56,6 +56,7 @@ extern struct sprite {
 #define SPRITE_CONTROLLER_GUARD 3
 #define SPRITE_CONTROLLER_SHOVEL 4
 #define SPRITE_CONTROLLER_BULLET 5
+#define SPRITE_CONTROLLER_FAIRY 6
 
 extern struct camera {
   int16_t x,y,w,h; // Boundaries in mm, watch for exceeding left and right world edges.

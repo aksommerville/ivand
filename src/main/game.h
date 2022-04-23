@@ -59,11 +59,13 @@ void sprite_input_ivan(struct sprite *sprite,uint8_t input,uint8_t pvinput);
 void sprite_update_ivan(struct sprite *sprite);
 void sprite_update_guard(struct sprite *sprite);
 void sprite_update_bullet(struct sprite *sprite);
+void sprite_update_fairy(struct sprite *sprite);
 void sprite_render_ivan(struct sprite *sprite);
 void sprite_render_dummy(struct sprite *sprite);
 void sprite_render_guard(struct sprite *sprite);
 void sprite_render_shovel(struct sprite *sprite);
 void sprite_render_bullet(struct sprite *sprite);
+void sprite_render_fairy(struct sprite *sprite);
 
 /* Renders a bubble with a downward indicator, you can render text onto it.
  * (x,y,w,h,focusx) all in framebuffer pixels.

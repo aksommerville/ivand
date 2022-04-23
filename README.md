@@ -33,7 +33,7 @@
 - [x] Main menu
 - [x] Death animation, don't just hop to the menu immediately.
 - [ ] Tiny menu image
-- [ ] Fairy appears when you're trapped and creates new dirt
+- [x] Fairy appears when you're trapped and creates new dirt
 - [ ] Get permission from the Solzhenitsyn estate: https://www.solzhenitsyncenter.org/who-we-are
 - [x] Watch the 1970 movie. There's a movie!
 - - https://www.youtube.com/watch?v=YqG1uwhTX2o

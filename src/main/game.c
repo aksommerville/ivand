@@ -89,6 +89,7 @@ void game_update() {
     case SPRITE_CONTROLLER_IVAN: sprite_update_ivan(sprite); break;
     case SPRITE_CONTROLLER_GUARD: sprite_update_guard(sprite); break;
     case SPRITE_CONTROLLER_BULLET: sprite_update_bullet(sprite); break;
+    case SPRITE_CONTROLLER_FAIRY: sprite_update_fairy(sprite); break;
   }
   
   if (gameclock) gameclock--;
@@ -322,6 +323,7 @@ void game_render() {
       case SPRITE_CONTROLLER_GUARD: sprite_render_guard(sprite); break;
       case SPRITE_CONTROLLER_SHOVEL: sprite_render_shovel(sprite); break;
       case SPRITE_CONTROLLER_BULLET: sprite_render_bullet(sprite); break;
+      case SPRITE_CONTROLLER_FAIRY: sprite_render_fairy(sprite); break;
     }
   }
   

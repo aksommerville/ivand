@@ -32,6 +32,8 @@ struct sprite_ivan {
   uint8_t jumppower;
   uint8_t carrying; // either the shovel or a block over my head, or nothing
   uint8_t injury_highlight;
+  uint16_t idleframec;
+  uint8_t fairy_triggered;
 };
 
 #define SPRITE ((struct sprite_ivan*)sprite)
@@ -318,6 +320,193 @@ static void ivan_check_actions(struct sprite *sprite) {
 
 }
 
+/* If we are at (x,y), and trapped in a hole with walls at (lx) and (rx), is the shovel reachable?
+ */
+ 
+static uint8_t shovel_is_reachable(struct sprite *sprite,int16_t x,int16_t y,int16_t lx,int16_t rx) {
+
+  // First, best case scenario: If we're holding the shovel, it is reachable.
+  if (SPRITE->carrying==CARRYING_SHOVEL) return 1;
+  if (SPRITE->carrying==CARRYING_SHOVEL_FULL) return 1;
+  
+  struct sprite *shovel=spritev;
+  uint8_t i=SPRITE_LIMIT;
+  for (;i-->0;shovel++) {
+  
+    if (shovel->controller!=SPRITE_CONTROLLER_SHOVEL) continue;
+  
+    int16_t sx=(shovel->x+(shovel->w>>1))/TILE_W_MM;
+    if (sx>=WORLD_W_TILES) sx-=WORLD_W_TILES;
+    if ((sx<0)||(sx>=WORLD_W_TILES)) continue;
+    int16_t sy=(shovel->y+(shovel->h>>1))/TILE_H_MM;
+    if ((sy<0)||(sy>=WORLD_H_TILES)) continue;
+    
+    if (lx<rx) {
+      if (sx<=lx) continue;
+      if (sx>=rx) continue;
+    } else {
+      if (sx>=lx) continue;
+      if (sx<=rx) continue;
+    }
+    
+    if (grid[sy*WORLD_W_TILES+sx]>=0x10) {
+      // Shovel is buried. Oh Ivan what have you done?
+      continue;
+    }
+    if ((sy<WORLD_H_TILES-1)&&(grid[(sy+1)*WORLD_W_TILES+sx]<0x10)) {
+      // There is air under the shovel. It might still be reachable by jumping, but let's stop there.
+      continue;
+    }
+    return 1;
+  }
+  return 0;
+}
+
+/* How many solid cells present in column (x) beginning at row (y) and proceeding upward?
+ */
+ 
+static int16_t get_elevation(int16_t x,int16_t y) {
+  if (x<0) return 0;
+  if (y<0) return 0;
+  if (x>=WORLD_W_TILES) return 0;
+  if (y>=WORLD_H_TILES) y=WORLD_H_TILES-1;
+  const uint8_t *v=grid+y*WORLD_W_TILES+x;
+  int16_t elevation=0;
+  while (y>=0) {
+    if (*v<0x10) break; // not solid
+    elevation++;
+    y--;
+    v-=WORLD_W_TILES;
+  }
+  return elevation;
+}
+
+/* How many dirts between (lx) and (rx) exclusive?
+ */
+ 
+static int16_t count_dirt_tiles(int16_t lx,int16_t rx) {
+  if (lx>rx) {
+    return count_dirt_tiles(-1,rx)+count_dirt_tiles(lx+1,WORLD_W_TILES);
+  }
+  lx+=1;
+  rx-=1;
+  if (lx<0) lx=0;
+  if (rx>=WORLD_W_TILES) rx=WORLD_W_TILES-1;
+  int16_t dirtc=0;
+  while (lx<=rx) {
+    const uint8_t *v=grid+lx;
+    uint8_t yi=WORLD_H_TILES;
+    for (;yi-->0;v+=WORLD_W_TILES) if ((*v>=0x20)&&(*v<=0x2f)) dirtc++;
+    lx++;
+  }
+  return dirtc;
+}
+
+/* Check whether I am trapped, ie should we summon a fairy?
+ * "Trapped" means one of:
+ *   - There is a wall on each side of me more than 2 tiles high, and the shovel is unreachable.
+ *   - Shovel is reachable, and the walls on each side of me are taller than the available dirt can pile.
+ */
+ 
+static uint8_t ivan_is_trapped(struct sprite *sprite) {
+  
+  // We're going to analyze based on the grid only, so pick the hero's position in grid space.
+  int16_t x=(sprite->x+(sprite->w>>1))/TILE_W_MM;
+  if (x>=WORLD_W_TILES) x-=WORLD_W_TILES;
+  if ((x<0)||(x>=WORLD_W_TILES)) return 0;
+  int16_t y=(sprite->y+(sprite->h>>1))/TILE_H_MM;
+  if ((y<0)||(y>=WORLD_H_TILES)) return 0;
+  
+  // Walk each direction and find the ground level at each column.
+  // If any single-pair slope exceeds 2, it's blocked.
+  // If both directions are blocked at different places, we're trapped.
+  int16_t lx=x-1;
+  int16_t fatal_elevation=2,prev_elevation=0;;
+  while (1) {
+    if (lx<0) lx+=WORLD_W_TILES;
+    if (lx==x) return 0; // circled the world; he's not trapped.
+    int16_t ly=get_elevation(lx,y);
+    if (ly>prev_elevation+2) break;
+    lx--;
+    prev_elevation=ly;
+  }
+  // And the same thing rightward...
+  int16_t rx=x+1;
+  fatal_elevation=2;
+  prev_elevation=0;
+  while (1) {
+    if (rx>=WORLD_W_TILES) rx-=WORLD_W_TILES;
+    if (rx==x) return 0;
+    if (rx==lx) return 0; // a single pole somewhere is not fairy-worthy
+    int16_t ry=get_elevation(rx,y);
+    if (ry>prev_elevation+2) break;
+    rx++;
+    prev_elevation=ry;
+  }
+  
+  // If the shovel is reachable, measure the shovelable dirt between lx and rx exclusive.
+  if (shovel_is_reachable(sprite,x,y,lx,rx)) {
+    int16_t dirtc=count_dirt_tiles(lx,rx);
+    int16_t lelev=get_elevation(lx,y);//WORLD_H_TILES-1);
+    int16_t relev=get_elevation(rx,y);//WORLD_H_TILES-1);
+    int16_t elevation=(lelev>relev)?lelev:relev;
+    int16_t w=(lx<rx)?(rx-lx-1):(rx+WORLD_W_TILES-lx-1);
+    if ((dirtc*4>=w*elevation)&&(elevation<=w<<1)) {
+      // This formula is not exact, it's a little forgiving.
+      // But basically, if we have 1/4 of the enclosed area as dirt, and elevation is less than double width, you can dig out.
+      return 0;
+    }
+  }
+  
+  return 1;
+}
+
+/* Is there a fairy guardmother in play already? We can't have two.
+ */
+ 
+static uint8_t fairy_exists() {
+  const struct sprite *sprite=spritev;
+  uint8_t i=SPRITE_LIMIT;
+  for (;i-->0;sprite++) {
+    if (sprite->controller==SPRITE_CONTROLLER_FAIRY) return 1;
+  }
+  return 0;
+}
+
+/* Create the fairy guardmother if needed.
+ * She appears when you are trapped and have left the controls idle for more than say 2 seconds.
+ */
+ 
+static void ivan_check_fairy(struct sprite *sprite) {
+
+  // Any input resets the state.
+  if (SPRITE->dx||SPRITE->dy||SPRITE->injump||SPRITE->inaux) {
+    SPRITE->idleframec=0;
+    SPRITE->fairy_triggered=0;
+    return;
+  }
+  
+  // Already been here? Must reset before reappearing.
+  if (SPRITE->fairy_triggered) return;
+  
+  SPRITE->idleframec++;
+  if (SPRITE->idleframec>=120) {
+    SPRITE->idleframec=0;
+    SPRITE->fairy_triggered=1;
+    if (fairy_exists()) return;
+    if (ivan_is_trapped(sprite)) {
+      struct sprite *fairy=sprite_new();
+      if (fairy) {
+        fairy->controller=SPRITE_CONTROLLER_FAIRY;
+        fairy->w=12*MM_PER_PIXEL;
+        fairy->h=11*MM_PER_PIXEL;
+        fairy->x=sprite->x-(CAMERA_W_MM>>1)-fairy->w;
+        fairy->y=sprite->y-(CAMERA_W_MM>>2);
+      }
+    }
+  }
+}
+
 /* Update.
  */
  
@@ -328,6 +517,7 @@ void sprite_update_ivan(struct sprite *sprite) {
     ivan_update_jump(sprite);
     ivan_check_tattle(sprite);
     ivan_check_actions(sprite);
+    ivan_check_fairy(sprite);
     if (SPRITE->injury_highlight) SPRITE->injury_highlight--;
   } else {
   }

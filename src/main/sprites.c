@@ -188,3 +188,68 @@ void sprite_render_bullet(struct sprite *sprite) {
   sprite_get_render_position(&x,&y,sprite);
   image_blit_colorkey(&fb,x,y,&fgbits,0,5,2,2);
 }
+
+/* Fairy Guardmother.
+ */
+ 
+#define FAIRY_SPEED_HORZ (MM_PER_PIXEL>>2)
+#define FAIRY_ESCAPE_SPEED_HORZ ((MM_PER_PIXEL*3)/2)
+#define FAIRY_SPEED_VERT (MM_PER_PIXEL>>3)
+ 
+void sprite_update_fairy(struct sprite *sprite) {
+
+  if (sprite->opaque[4]) {
+    sprite->x-=FAIRY_ESCAPE_SPEED_HORZ;
+    sprite->y-=FAIRY_SPEED_VERT;
+    sprite->opaque[4]++;
+    if (sprite->opaque[4]>=100) sprite->controller=SPRITE_CONTROLLER_NONE;
+    return;
+  }
+
+  if (!sprite->opaque[2]) sprite->x+=FAIRY_SPEED_HORZ;
+  sprite->y+=FAIRY_SPEED_VERT;
+  
+  struct sprite *hero=game_get_hero();
+  if (!hero) {
+    sprite->controller=SPRITE_CONTROLLER_NONE;
+    return;
+  }
+  if (sprite->y>=hero->y) {
+    sprite->opaque[2]=1;
+    sprite->y=hero->y;
+    sprite->opaque[3]++;
+    if (sprite->opaque[3]>=30) { // pause a bit then make then dirt
+      int16_t x=(hero->x+(hero->w>>1))/TILE_W_MM;
+      if (x>=WORLD_W_TILES) x-=WORLD_W_TILES;
+      if ((x>=0)&&(x<WORLD_W_TILES)) {
+        int16_t y=(hero->y+(hero->h>>1))/TILE_H_MM;
+        if ((y>=0)&&(y<WORLD_H_TILES)) {
+          hero->y-=TILE_H_MM;
+          grid_add_dirt(x,y);
+          //TODO fireworks
+        }
+      }
+      sprite->opaque[4]=1;
+    }
+  }
+}
+
+void sprite_render_fairy(struct sprite *sprite) {
+  int16_t x,y;
+  sprite_get_render_position(&x,&y,sprite);
+  
+  if (sprite->opaque[0]) sprite->opaque[0]--;
+  else {
+    sprite->opaque[0]=6;
+    sprite->opaque[1]++;
+    if (sprite->opaque[1]>=4) sprite->opaque[1]=0;
+  }
+  
+  int16_t srcx=0;
+  switch (sprite->opaque[1]) {
+    case 1: srcx+=12; break;
+    case 2: srcx+=24; break;
+    case 3: srcx+=12; break;
+  }
+  image_blit_colorkey(&fb,x,y,&fgbits,srcx,72,12,11);
+}

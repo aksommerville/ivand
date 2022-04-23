@@ -49,6 +49,13 @@ void grid_default() {
   grid[WORLD_W_TILES*15+47]=0x2a;
   grid[WORLD_W_TILES*14+46]=0x28;
   grid[WORLD_W_TILES*13+46]=0x12;
+  
+  /* XXX TEMP Put the statue higher while testing, it's getting annoying. */
+  grid[WORLD_W_TILES*13+46]=0x2f;
+  grid[WORLD_W_TILES*12+46]=0x2f;
+  grid[WORLD_W_TILES*11+46]=0x2f;
+  grid[WORLD_W_TILES*10+46]=0x12;
+  /**/
 }
 
 /* Update camera.
