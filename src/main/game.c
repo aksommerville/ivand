@@ -195,23 +195,9 @@ static void render_tattle() {
         image_blit_string(&fb,dstx+3,dsty+2,"Truck",5,0x0000,font);
       } break;
       
-    case TATTLE_HOLE: {//TODO spacing, verbiage
-        int16_t dstw=40;
-        int16_t dsth=14;
-        int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
-        int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
-        render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
-        image_blit_string(&fb,dstx,dsty,"Dig hole",8,0x0000,font);
-      } break;
-      
-    case TATTLE_WALL: {//TODO spacing, verbiage
-        int16_t dstw=40;
-        int16_t dsth=14;
-        int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
-        int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
-        render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
-        image_blit_string(&fb,dstx,dsty,"Build wall",10,0x0000,font);
-      } break;
+    //XXX I ended up not using these tattles.
+    case TATTLE_HOLE: break;
+    case TATTLE_WALL: break;
       
     case TATTLE_STATUE: {
         int16_t dstw=40;
@@ -223,13 +209,14 @@ static void render_tattle() {
         image_blit_string(&fb,dstx+12,dsty+2,"on top",6,0x0000,font);
       } break;
       
-    case TATTLE_BARREL: {//TODO spacing, verbiage
-        int16_t dstw=40;
+    case TATTLE_BARREL: {
+        int16_t dstw=30;
         int16_t dsth=14;
         int16_t dstx=tattlex-(dstw>>1)-camera.x/MM_PER_PIXEL;
         int16_t dsty=tattley-dsth-camera.y/MM_PER_PIXEL;
         render_dialogue_bubble(dstx,dsty,dstw,dsth,dstx+(dstw>>1));
-        image_blit_string(&fb,dstx,dsty,"Bury barrel",11,0x0000,font);
+        image_blit_colorkey(&fb,dstx+2,dsty+2,&bgtiles,TILE_W_PIXELS*1,TILE_H_PIXELS*1,TILE_W_PIXELS,TILE_H_PIXELS);
+        image_blit_string(&fb,dstx+11,dsty+2,"Bury",4,0x0000,font);
       } break;
   }
 }

@@ -243,16 +243,18 @@ uint8_t grid_cell_buried(int16_t x,int16_t y) {
   int16_t lx=x?(x-1):(WORLD_W_TILES-1);
   int16_t rx=x+1; if (rx>=WORLD_W_TILES) rx=0;
   
-  if (!grid_tile_is_dirt(grid[(y-1)*WORLD_W_TILES+lx])) return 0;
-  if (!grid_tile_is_dirt(grid[(y-1)*WORLD_W_TILES+x])) return 0;
-  if (!grid_tile_is_dirt(grid[(y-1)*WORLD_W_TILES+rx])) return 0;
-  if (!grid_tile_is_dirt(grid[y*WORLD_W_TILES+lx])) return 0;
-  if (!grid_tile_is_dirt(grid[y*WORLD_W_TILES+rx])) return 0;
+  #define SOLID(n) ((n)>=0x10)
+  if (!SOLID(grid[(y-1)*WORLD_W_TILES+lx])) return 0;
+  if (!SOLID(grid[(y-1)*WORLD_W_TILES+x])) return 0;
+  if (!SOLID(grid[(y-1)*WORLD_W_TILES+rx])) return 0;
+  if (!SOLID(grid[y*WORLD_W_TILES+lx])) return 0;
+  if (!SOLID(grid[y*WORLD_W_TILES+rx])) return 0;
   if (y<WORLD_H_TILES-1) {
-    if (!grid_tile_is_dirt(grid[(y+1)*WORLD_W_TILES+lx])) return 0;
-    if (!grid_tile_is_dirt(grid[(y+1)*WORLD_W_TILES+x])) return 0;
-    if (!grid_tile_is_dirt(grid[(y+1)*WORLD_W_TILES+rx])) return 0;
+    if (!SOLID(grid[(y+1)*WORLD_W_TILES+lx])) return 0;
+    if (!SOLID(grid[(y+1)*WORLD_W_TILES+x])) return 0;
+    if (!SOLID(grid[(y+1)*WORLD_W_TILES+rx])) return 0;
   }
+  #undef SOLID
   return 1;
 }
 
