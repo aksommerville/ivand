@@ -181,10 +181,9 @@ static uint8_t violation_statue() {
 
 // If a barrel (0x11) exists, it must have dirt (0x20..0x2f) on all 8 sides.
 static uint8_t violation_barrel() {
-  const uint8_t *row=grid;
+  const uint8_t *p=grid;
   uint8_t y=0;
   for (;y<WORLD_H_TILES;y++) {
-    const uint8_t *p=row;
     uint8_t x=0;
     for (;x<WORLD_W_TILES;x++,p++) {
       if (*p==0x11) {
