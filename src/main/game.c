@@ -3,8 +3,10 @@
 #include "data.h"
 #include "synth.h"
 #include "world.h"
+#include "timed_tasks.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define FADE_OUT_TIME (60*5)
 
@@ -27,6 +29,7 @@ void game_end() {
  */
  
 void game_begin() {
+  srand(millis());
   
   grid_default();
   thumbnail_draw();
@@ -64,6 +67,8 @@ void game_begin() {
     sprite->x=40*TILE_W_MM;
     sprite->y=(WORLD_H_TILES>>1)*TILE_H_MM-sprite->h;
   }
+  
+  timed_tasks_init();
 }
 
 /* Receive input.
@@ -93,9 +98,7 @@ void game_update() {
   }
   
   if (gameclock) gameclock--;
-  //TODO master clock triggers
-  
-  //TODO other global game update stuff?
+  timed_tasks_update();
 }
 
 /* Request tattle.
@@ -274,7 +277,7 @@ static void game_render_clock() {
  */
  
 static void game_render_hp() {
-  int16_t x=18;
+  int16_t x=19;
   uint8_t i=0;
   for (;i<HP_MAX;i++,x+=6) {
     int16_t srcx=(i<hp)?7:2;

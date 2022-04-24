@@ -26,7 +26,7 @@
 - [x] Move tattle rendering to global game (draw in front of thumbnail)
 - [x] Clock
 - [ ] Scorekeeping
-- [ ] Truck deliveries
+- [x] Truck deliveries
 - [x] Guards
 - [x] Statue
 - [ ] Sound effects

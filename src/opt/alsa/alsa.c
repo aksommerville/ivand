@@ -9,7 +9,7 @@
 /* Object definition.
  */
 
-#define ALSA_BUFFER_SIZE 1024
+#define ALSA_BUFFER_SIZE 2048
 
 struct alsa {
   struct alsa_delegate delegate;

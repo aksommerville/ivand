@@ -236,6 +236,17 @@ int usb_read_byte() {
   return -1;
 }
 
+/* Arduino clock functions.
+ */
+ 
+uint32_t millis() {
+  return now_us()/1000;
+}
+
+uint32_t micros() {
+  return now_us();
+}
+
 /* XXX print my generated waves for verification
  */
  

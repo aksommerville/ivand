@@ -31,7 +31,7 @@ void grid_default() {
   memset(grid+skysize,0x2e,WORLD_W_TILES);
   memset(grid+skysize+WORLD_W_TILES,0x2f,sizeof(grid)-WORLD_W_TILES-skysize);
   
-  // Truck. Update sprite_guard.c:violation_truck() if you move it.
+  // Truck. Update sprite_guard.c:violation_truck() if you move it. Also timed_tasks.c:execute_task().
   grid[WORLD_W_TILES*14+10]=0x01;
   grid[WORLD_W_TILES*14+11]=0x30;
   grid[WORLD_W_TILES*15+10]=0x31;
@@ -50,7 +50,7 @@ void grid_default() {
   grid[WORLD_W_TILES*14+46]=0x28;
   grid[WORLD_W_TILES*13+46]=0x12;
   
-  /* XXX TEMP Put the statue higher while testing, it's getting annoying. */
+  /* XXX TEMP Put the statue higher while testing, it's getting annoying. *
   grid[WORLD_W_TILES*13+46]=0x2f;
   grid[WORLD_W_TILES*12+46]=0x2f;
   grid[WORLD_W_TILES*11+46]=0x2f;

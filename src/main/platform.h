@@ -32,6 +32,10 @@ void usb_send(const void *v,int c);
 int usb_read(void *dst,int dsta);
 int usb_read_byte();
 
+// Provided by Arduino libs; non-Arduino drivers must implement.
+uint32_t millis();
+uint32_t micros();
+
 /* Imaging.
  *********************************************************************/
  

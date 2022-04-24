@@ -113,7 +113,6 @@ static void guard_update_motion(struct sprite *sprite) {
   if (!SPRITE->motion) return;
   
   // If we're able to move, abort climbing and get on with our lives.
-  // Note that this is the only thing that ends climbing, we don't specifically track the wall or anything.
   int16_t dx=sprite_move_horz(sprite,WALK_SPEED*SPRITE->motion);
   if (dx) {
     SPRITE->climbing=0;
@@ -137,7 +136,7 @@ static void guard_update_motion(struct sprite *sprite) {
   uint8_t hitile=row?grid[WORLD_W_TILES*(row-1)+col]:0;
   
   // If the upper tile is vacant, we can jump.
-  if (hitile<=0x10) {
+  if (hitile<0x10) {
     if (sprite_is_grounded(sprite)) {
       SPRITE->jump_power=JUMP_POWER_INITIAL;
     }

@@ -22,7 +22,7 @@ extern uint8_t hp;
 
 #define GAME_DURATION_FRAMES (60*60*2)
 
-#define HP_MAX 4
+#define HP_MAX 7
 
 #define DIR_N    0x01
 #define DIR_W    0x02
