@@ -16,9 +16,10 @@ struct sprite;
 
 extern struct image fb;
 extern struct synth synth;
-extern uint32_t framec;
+extern uint32_t framec; // resets each round
 extern uint32_t gameclock; // frames; counts down
 extern uint8_t hp;
+extern uint32_t activity_framec; // starts zero, incremented by hero
 
 #define GAME_DURATION_FRAMES (60*60*2)
 
@@ -54,6 +55,7 @@ void sprite_get_render_position(int16_t *x,int16_t *y,const struct sprite *sprit
 
 struct sprite *game_get_hero();
 void hero_highlight_injury(struct sprite *sprite);
+uint8_t hero_is_holding_barrel();
 
 void sprite_input_ivan(struct sprite *sprite,uint8_t input,uint8_t pvinput);
 void sprite_update_ivan(struct sprite *sprite);

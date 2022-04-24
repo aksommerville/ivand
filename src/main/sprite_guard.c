@@ -154,7 +154,7 @@ static void guard_update_motion(struct sprite *sprite) {
  
 // Truck must be unloaded if anything is there. 0x33,0x34,0x35.
 // This is in a fixed position. The bed is cells (12,14),(13,14),(14,14)
-static uint8_t violation_truck() {
+uint8_t violation_truck() {
   const uint8_t *p=grid+WORLD_W_TILES*14+12;
   uint8_t i=3;
   for (;i-->0;p++) {
@@ -165,7 +165,7 @@ static uint8_t violation_truck() {
 
 // The statue (0x12) must be the tallest non-vacant thing, even a tie is a violation.
 // If no statue found, the player must be carrying it. That's a violation too.
-static uint8_t violation_statue() {
+uint8_t violation_statue() {
   const uint8_t *p=grid;
   uint8_t y=WORLD_H_TILES;
   for (;y-->0;) {
@@ -180,7 +180,7 @@ static uint8_t violation_statue() {
 }
 
 // If a barrel (0x11) exists, it must have dirt (0x20..0x2f) on all 8 sides.
-static uint8_t violation_barrel() {
+uint8_t violation_barrel() {
   const uint8_t *p=grid;
   uint8_t y=0;
   for (;y<WORLD_H_TILES;y++) {
@@ -217,9 +217,10 @@ static void guard_update_rules(struct sprite *sprite) {
   }
   SPRITE->rulesclock=RULES_CLOCK_TIME;
   
-       if (violation_barrel()) SPRITE->violation=TATTLE_BARREL;
-  else if (violation_statue()) SPRITE->violation=TATTLE_STATUE;
+  // TRUCK before BARREL, otherwise he says "Bury barrel" when it first appears, which feels wrong.
+       if (violation_statue()) SPRITE->violation=TATTLE_STATUE;
   else if (violation_truck()) SPRITE->violation=TATTLE_TRUCK;
+  else if (violation_barrel()) SPRITE->violation=TATTLE_BARREL;
   
   if (SPRITE->violation) set_tattle(sprite->x+(sprite->w>>1),sprite->y-MM_PER_PIXEL*2,SPRITE->violation);
 }

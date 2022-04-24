@@ -56,7 +56,7 @@ void loop() {
         if (!gameclock) {
           mainstate=MAINSTATE_MENU;
           game_end();
-          menu_begin();
+          menu_begin(0);
         }
       } break;
       
@@ -93,9 +93,6 @@ void setup() {
   synth.wavev[6]=wave6;
   synth.wavev[7]=wave7;
   
-  //TODO Starting game immediately during initial work. Eventually should have a menu here.
-  //game_begin();
-  //mainstate=MAINSTATE_GAME;
-  menu_begin();
+  menu_begin(1);
   mainstate=MAINSTATE_MENU;
 }

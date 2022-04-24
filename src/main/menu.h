@@ -15,7 +15,7 @@ extern struct synth synth;
 
 void menu_end();
 
-void menu_begin();
+void menu_begin(uint8_t initial);
 
 void menu_input(uint8_t input,uint8_t pvinput);
 uint8_t menu_update();

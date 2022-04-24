@@ -86,7 +86,10 @@ void sprite_input_ivan(struct sprite *sprite,uint8_t input,uint8_t pvinput) {
  
 static void ivan_update_walk(struct sprite *sprite) {
   if (SPRITE->dx) { // Walking explicitly.
-    sprite_move_horz(sprite,SPRITE->dx*WALK_SPEED);
+    if (sprite_move_horz(sprite,SPRITE->dx*WALK_SPEED)) {
+      // It doesn't count as activity if there was no effect.
+      activity_framec++;
+    }
   } else { // Cheat to the nearest tile (aligning horizontal centers)
     int16_t refx=sprite->x+(sprite->w>>1)-(TILE_W_MM>>1);
     int16_t slop=refx%TILE_W_MM;
@@ -634,4 +637,13 @@ void hero_highlight_injury(struct sprite *sprite) {
     SPRITE->animclock=0;
     SPRITE->animframe=0;
   }
+}
+
+/* Public disclosure of carrying.
+ */
+ 
+uint8_t hero_is_holding_barrel() {
+  const struct sprite *sprite=game_get_hero();
+  if (!sprite) return 0;
+  return (SPRITE->carrying==CARRYING_BARREL)?1:0;
 }

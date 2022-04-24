@@ -17,6 +17,7 @@ static uint8_t tattle=TATTLE_NONE;
 static int16_t tattlex,tattley;
 uint32_t gameclock;
 uint8_t hp;
+uint32_t activity_framec;
 
 /* End.
  */
@@ -35,6 +36,8 @@ void game_begin() {
   thumbnail_draw();
   gameclock=GAME_DURATION_FRAMES;
   hp=HP_MAX;
+  framec=0;
+  activity_framec=0;
   
   memset(spritev,0,sizeof(spritev));
   struct sprite *sprite;

@@ -20,7 +20,7 @@ static struct task {
   uint8_t id;
   uint32_t time; // trigger when game clock goes below this (video frames)
 } taskv[TASK_LIMIT];
-static uint8_t taskc;
+uint8_t taskc=0;
 static uint8_t tasktimer;
   
 

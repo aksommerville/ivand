@@ -32,7 +32,6 @@ void grid_default() {
   memset(grid+skysize+WORLD_W_TILES,0x2f,sizeof(grid)-WORLD_W_TILES-skysize);
   
   // Truck. Update sprite_guard.c:violation_truck() if you move it. Also timed_tasks.c:execute_task().
-  grid[WORLD_W_TILES*14+10]=0x01;
   grid[WORLD_W_TILES*14+11]=0x30;
   grid[WORLD_W_TILES*15+10]=0x31;
   grid[WORLD_W_TILES*15+11]=0x32;
@@ -316,4 +315,51 @@ void thumbnail_draw() {
   } else { // dammit andy you broke something
     image_fill_rect(&thumbnail,1,1,thumbnail.w-2,thumbnail.h-2,0xff00);
   }
+}
+
+/* Scoring.
+ */
+ 
+uint32_t get_elevation_score() {
+  const uint8_t *p=grid;
+  uint16_t emptyc=0;
+  uint16_t i=WORLD_H_TILES>>1;
+  for (;i-->0;) {
+    // There is no empty tile except zero that could appear alone at ground level, so we only need to look for zeroes.
+    uint8_t empty=1;
+    uint16_t xi=WORLD_W_TILES;
+    for (;xi-->0;p++) {
+      if (*p) { empty=0; break; }
+    }
+    if (!empty) break;
+    emptyc++;
+  }
+  return (WORLD_H_TILES>>1)-emptyc;
+}
+
+uint32_t get_depth_score() {
+  // Same idea as elevation score, but count backward from the end.
+  const uint8_t *p=grid+WORLD_W_TILES*WORLD_H_TILES-1;
+  uint16_t fullc=0;
+  uint16_t i=WORLD_H_TILES>>1;
+  for (;i-->0;) {
+    // Full is anything >=0x10
+    uint8_t full=1;
+    uint16_t xi=WORLD_W_TILES;
+    for (;xi-->0;p--) {
+      if (*p<0x10) { full=0; break; }
+    }
+    if (!full) break;
+    fullc++;
+  }
+  return (WORLD_H_TILES>>1)-fullc;
+}
+
+const char *get_validation_message() {
+  // Order matters:
+  if (!hp) return "Must be alive to win.";
+  if (violation_statue()) return "Statue not on top.";
+  if (violation_truck()) return "Truck not unloaded.";
+  if (hero_is_holding_barrel()||violation_barrel()) return "Barrel not buried.";
+  return 0;
 }

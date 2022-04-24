@@ -6,6 +6,10 @@
 #ifndef TIMED_TASKS_H
 #define TIMED_TASKS_H
 
+#include <stdint.h>
+
+extern uint8_t taskc;
+
 void timed_tasks_init();
 void timed_tasks_update();
 

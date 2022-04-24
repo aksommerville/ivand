@@ -20,7 +20,7 @@ struct image;
 #define TILE_W_MM (TILE_W_PIXELS*MM_PER_PIXEL)
 #define TILE_H_MM (TILE_H_PIXELS*MM_PER_PIXEL)
 #define WORLD_W_TILES 60
-#define WORLD_H_TILES 32
+#define WORLD_H_TILES 32 /* Must be even. */
 #define WORLD_W_PIXELS (WORLD_W_TILES*TILE_W_PIXELS)
 #define WORLD_H_PIXELS (WORLD_H_TILES*TILE_H_PIXELS)
 #define WORLD_W_MM (WORLD_W_PIXELS*MM_PER_PIXEL)
@@ -94,5 +94,15 @@ uint8_t grid_cell_buried(int16_t x,int16_t y);
 
 // Draw the whole thumbnail from scratch.
 void thumbnail_draw();
+
+// Scores are uint32_t, but really they are limited to 0..16
+uint32_t get_elevation_score();
+uint32_t get_depth_score();
+const char *get_validation_message(); // null if valid
+
+// sprite_guard.c
+uint8_t violation_truck();
+uint8_t violation_statue();
+uint8_t violation_barrel();
 
 #endif
