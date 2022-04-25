@@ -21,10 +21,11 @@
 
 ## TODO
 
-- [ ] Persist high score
-- [ ] Cheat camera up a little, now that we have UI chrome on top ...think it thru, maybe not (consider standing on a lone peak)
+- [x] Persist high score
+- xxx Cheat camera up a little, now that we have UI chrome on top ...think it thru, maybe not (consider standing on a lone peak)
 - [ ] Sound effects
 - [ ] Tiny menu image
+- [ ] Try compiling to WebAssembly, what would that take?
 - [ ] Get permission from the Solzhenitsyn estate: https://www.solzhenitsyncenter.org/who-we-are
 - [x] Bricks and barrels
 - [x] World map thumbnail

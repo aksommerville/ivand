@@ -3,6 +3,7 @@
 #include "synth.h"
 #include "world.h"
 #include "game.h"
+#include "highscore.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -46,10 +47,12 @@ static void generate_report() {
   uint32_t score=validation?(((elevation*depth*37+hp*89)*activity)/100):0;
   if (score>9999) score=9999; // pretty sure that's unreachable but let's be certain
   
-  uint32_t hiscore=0;//TODO get high score
+  uint32_t hiscore=highscore_get();
   if (score>hiscore) {
-    //TODO save high score
+    highscore_set(score);
+    highscore_send(score);
     validation_message="** New high score! **";
+    hiscore=score;
   } else {
     validation_message=error;
   }
