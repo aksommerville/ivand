@@ -42,15 +42,23 @@ static void generate_report() {
     if (activity<0) activity=0;
     else if (activity>99) activity=99;
   }
-  uint32_t score=validation?((elevation*depth*10+hp*20*activity)/100):0;
+  // The constants 37 and 89 were selected to make all scores <10k, and most realistic scores >1k; i want 4 digits
+  uint32_t score=validation?(((elevation*depth*37+hp*89)*activity)/100):0;
   if (score>9999) score=9999; // pretty sure that's unreachable but let's be certain
   
   uint32_t hiscore=0;//TODO get high score
   if (score>hiscore) {
     //TODO save high score
+    validation_message="** New high score! **";
+  } else {
+    validation_message=error;
   }
   
-  validation_message=error;
+  fprintf(stderr,
+    "SCORE: elv=%02d dep=%02d hp=%d act=%02d val=%d ==> %04d\n",
+    elevation,depth,hp,activity,validation,score
+  );
+  
   report[ 0]=36+(elevation/10)*4;
   report[ 1]=36+(elevation%10)*4;
   report[ 2]=36+(depth/10)*4;
@@ -68,6 +76,7 @@ static void generate_report() {
   report[14]=36+((hiscore/10)%10)*4;
   report[15]=36+(hiscore%10)*4;
 }
+
 
 /* Init.
  */
@@ -152,7 +161,7 @@ void menu_render() {
     draw_digit(84,35,report[14]);
     draw_digit(89,35,report[15]);
     
-    image_blit_string(&fb,2,45,validation_message,-1,0x0000,font);
+    image_blit_string(&fb,4,45,validation_message,-1,0x0000,font);
     if (!blackout) {
       image_blit_string(&fb,2,55,"Press button, play again",24,0x0000,font);
     }

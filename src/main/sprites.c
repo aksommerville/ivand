@@ -164,7 +164,7 @@ void sprite_update_bullet(struct sprite *sprite) {
     return;
   }
   
-  if (!sprite_move_vert(sprite,BULLET_GRAVITY)) {
+  if (sprite_move_vert(sprite,BULLET_GRAVITY)!=BULLET_GRAVITY) {
     sprite->controller=SPRITE_CONTROLLER_NONE;
     return;
   }

@@ -86,14 +86,13 @@ void sprite_input_ivan(struct sprite *sprite,uint8_t input,uint8_t pvinput) {
  
 static void ivan_update_walk(struct sprite *sprite) {
   if (SPRITE->dx) { // Walking explicitly.
-    if (sprite_move_horz(sprite,SPRITE->dx*WALK_SPEED)) {
-      // It doesn't count as activity if there was no effect.
-      activity_framec++;
-    }
+    activity_framec++;
+    sprite_move_horz(sprite,SPRITE->dx*WALK_SPEED);
   } else { // Cheat to the nearest tile (aligning horizontal centers)
     int16_t refx=sprite->x+(sprite->w>>1)-(TILE_W_MM>>1);
     int16_t slop=refx%TILE_W_MM;
     if (slop) {
+      activity_framec++;
       // We could check like if (slop) is very high or very low, cheat that way regardless of motion.
       // For now I'm saying continue in the direction the user pressed.
       // So the tiniest tap in either direction moves you by exactly one tile.
@@ -127,6 +126,11 @@ static void ivan_update_jump(struct sprite *sprite) {
       SPRITE->jumppower=0;
     }
   }
+}
+
+// If he's dead, keep working the gravity but nothing else.
+static void ivan_update_gravity(struct sprite *sprite) {
+  if (!sprite_is_grounded(sprite)) sprite->y+=GRAVITY;
 }
 
 /* Tattle.
@@ -492,6 +496,10 @@ static void ivan_check_fairy(struct sprite *sprite) {
   // Already been here? Must reset before reappearing.
   if (SPRITE->fairy_triggered) return;
   
+  // Last ten seconds of play, don't summon a fairy.
+  // (this facilitates a pretty obvious strategy of digging yourself into a hole right at the end)
+  if (gameclock<60*10) return;
+  
   SPRITE->idleframec++;
   if (SPRITE->idleframec>=120) {
     SPRITE->idleframec=0;
@@ -523,6 +531,7 @@ void sprite_update_ivan(struct sprite *sprite) {
     ivan_check_fairy(sprite);
     if (SPRITE->injury_highlight) SPRITE->injury_highlight--;
   } else {
+    ivan_update_gravity(sprite);
   }
   
   // Clear impulse inputs.

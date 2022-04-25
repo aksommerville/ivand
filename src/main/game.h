@@ -21,7 +21,7 @@ extern uint32_t gameclock; // frames; counts down
 extern uint8_t hp;
 extern uint32_t activity_framec; // starts zero, incremented by hero
 
-#define GAME_DURATION_FRAMES (60*60*2)
+#define GAME_DURATION_FRAMES (60*60*3)
 
 #define HP_MAX 7
 
