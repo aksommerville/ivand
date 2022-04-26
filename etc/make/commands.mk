@@ -20,3 +20,8 @@ ifneq (,$(TA_MENU_BIN))
     sleep 2 ; \
     $(TINY_PKGROOT)/arduino/tools/bossac/1.7.0-arduino3/bossac -i -d --port=$(TINY_PORT) -U true -i -e -w $(TA_MENU_BIN) -R
 endif
+
+ifneq (,$(OUT_WASM))
+  serve:$(OUT_WASM) $(OUTFILES_WWW) $(TOOL_http);$(TOOL_http) --htdocs=\$(realpath src/www)
+endif
+

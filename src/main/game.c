@@ -257,7 +257,7 @@ static void game_render_clock() {
   uint32_t min=sec/60;
   sec%=60;
   char text[32];
-  int32_t textc=snprintf(text,sizeof(text),"%0d:%02d",min,sec);
+  int32_t textc=snprintf(text,sizeof(text),"%d:%02d",min,sec);
   if (textc>0) {
     image_blit_string(&fb,1,1,text,textc,0x0000,font);
   }

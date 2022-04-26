@@ -2,6 +2,7 @@
 
 include etc/config/native.mk
 include etc/config/tiny.mk
+include etc/config/wasm.mk
 
 # Beware: Many object files are shared between NATIVE and TOOL.
 # Only those sources under src/tool/ actually see the declarations for OPT_ENABLE_TOOL.

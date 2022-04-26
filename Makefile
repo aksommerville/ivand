@@ -1,3 +1,5 @@
+# Set NATIVE_ONLY nonzero to skip the Tiny and WebAssembly builds.
+
 all:
 .SILENT:
 .SECONDARY:

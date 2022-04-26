@@ -6,10 +6,12 @@ OPT_IGNORE_TOOL:=$(filter-out $(OPT_ENABLE_TOOL),$(OPT_AVAILABLE))
 
 SRCFILES:=$(shell find src -type f)
 
-# "embed" data files first run through a binary-binary converter, then get wrapped in C source.
+# "embed" data files use one of our tools to go from binary to C source.
+# Doing these three times is probably overkill, but there could be differences (eg byte order).
 EMBED_SRCFILES:=$(filter src/data/embed/%,$(SRCFILES))
 EMBED_CFILES_NATIVE:=$(patsubst src/data/embed/%,mid/native/data/embed/%.c,$(EMBED_SRCFILES))
 EMBED_CFILES_TINY:=$(patsubst src/data/embed/%,mid/tiny/data/embed/%.c,$(EMBED_SRCFILES))
+EMBED_CFILES_WASM:=$(patsubst src/data/embed/%,mid/wasm/data/embed/%.c,$(EMBED_SRCFILES))
 
 CFILES:=$(filter %.c,$(SRCFILES))
 CXXFILES_MAIN:=$(filter src/main/%.cpp,$(SRCFILES))
@@ -29,6 +31,28 @@ endif
 mid/native/%.o:src/%.c;$(PRECMD) $(CC_NATIVE) -o $@ $<
 mid/native/%.o:mid/native/%.c;$(PRECMD) $(CC_NATIVE) -o $@ $<
 mid/native/tool/%.o:src/tool/%.c;$(PRECMD) $(CC_TOOL) -o $@ $<
+
+ifndef NATIVE_ONLY
+  # WebAssembly binary...
+  OFILES_WASM:= \
+    $(filter-out mid/wasm/opt/% mid/wasm/tool/%,$(patsubst src/%,mid/wasm/%,$(CFILES:.c=.o))) \
+    $(patsubst src/opt/wasm/%.c,mid/wasm/opt/wasm/%.o,$(filter src/opt/wasm/%,$(CFILES))) \
+    $(EMBED_CFILES_WASM:.c=.o)
+  ifneq ($(MAKECMDGOALS),clean)
+    -include $(OFILES_WASM:.o=.d)
+  endif
+  mid/wasm/%.o:src/%.c;$(PRECMD) $(CC_WASM) -o $@ $<
+  mid/wasm/%.o:mid/wasm/%.c;$(PRECMD) $(CC_WASM) -o $@ $<
+  OUT_WASM:=out/www/ivand.wasm
+  all:$(OUT_WASM)
+  $(OUT_WASM):$(OFILES_WASM);$(PRECMD) $(LD_WASM) -o $@ $^ $(LDPOST_WASM)
+  
+  # Copy all the static htdocs too, so they're in one place...
+  SRCFILES_WWW:=$(filter src/www/%,$(SRCFILES))
+  OUTFILES_WWW:=$(patsubst src/www/%,out/www/%,$(SRCFILES_WWW))
+  out/www/%:src/www/%;$(PRECMD) cp $< $@
+  all:$(OUTFILES_WWW)
+endif
 
 define TOOL_RULES
   OFILES_TOOL_$1:=$(filter mid/native/tool/$1/%,$(OFILES_NATIVE)) $(OFILES_TOOL_COMMON)
@@ -59,6 +83,7 @@ define EMBED_RULES
 endef
 $(eval $(call EMBED_RULES,native,))
 $(eval $(call EMBED_RULES,tiny,--tiny))
+$(eval $(call EMBED_RULES,wasm,))
 
 all:$(EXE_NATIVE)
 $(EXE_NATIVE):$(OFILES_GAME);$(PRECMD) $(LD_NATIVE) -o $@ $(OFILES_GAME) $(LDPOST_NATIVE)

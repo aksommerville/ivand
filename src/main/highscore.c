@@ -1,9 +1,9 @@
 #include "highscore.h"
 #include "platform.h"
+#include <stdio.h>
 
 #if PO_NATIVE
   #include <stdlib.h>
-  #include <stdio.h>
   #include <fcntl.h>
   #include <unistd.h>
   #include <sys/stat.h>
