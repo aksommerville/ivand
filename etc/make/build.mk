@@ -66,13 +66,13 @@ $(foreach T,$(TOOLS),$(eval $(call TOOL_RULES,$T)))
 # "include" data files get included verbatim, for the most part.
 INCLUDE_SRCFILES:=$(filter src/data/include/%,$(SRCFILES))
 INCLUDE_FILES_NATIVE:=$(patsubst src/data/include/%,out/native/data/%,$(INCLUDE_SRCFILES))
-INCLUDE_FILES_TINY:=$(patsubst %/title.png,%/pokorc.tsv, \
+INCLUDE_FILES_TINY:=$(patsubst %/title.png,%/ivand.tsv, \
   $(patsubst src/data/include/%,out/tiny/data/%,$(INCLUDE_SRCFILES)) \
 )
 all:$(INCLUDE_FILES_NATIVE) $(INCLUDE_FILES_TINY)
 out/native/data/%:src/data/include/%;$(PRECMD) cp $< $@
 out/tiny/data/%:src/data/include/%;$(PRECMD) cp $< $@
-out/tiny/data/pokorc.tsv:src/data/include/title.png $(TOOL_cvtimg);$(PRECMD) $(TOOL_cvtimg) -o$@ $< --tiny
+out/tiny/data/ivand.tsv:src/data/include/title.png $(TOOL_cvtimg);$(PRECMD) $(TOOL_cvtimg) -o$@ $< --tiny
 
 define EMBED_RULES
   mid/$1/data/embed/%.c:src/data/embed/% $(TOOL_cvtraw);$$(PRECMD) $(TOOL_cvtraw) -o$$@ $$< $2
