@@ -84,7 +84,9 @@ export class InputManager {
           }
         }
         for (const button of gamepad._ivand_map.buttons) {
-          const nv = gamepad.buttons[button[0]]?.value;
+          const buttonobj = gamepad.buttons[button[0]];
+          if (!buttonobj) continue;
+          const nv = buttonobj.value;
           if (nv !== button[2]) {
             button[2] = nv;
             if (nv) this.buttons |= button[1];

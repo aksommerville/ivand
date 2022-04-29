@@ -279,7 +279,7 @@ static void ivan_drop(struct sprite *sprite) {
   }
   if (!sprite_is_grounded(sprite)) return;
   
-  // Find the cell where our crotch is and verify it's fully empty.
+  // Find the cell where our crotch is and verify it's fully empty, and the one below is solid.
   int16_t midx=sprite->x+(sprite->w>>1);
   int16_t col=midx/TILE_W_MM;
   if (col>=WORLD_W_TILES) col-=WORLD_W_TILES;
@@ -287,6 +287,7 @@ static void ivan_drop(struct sprite *sprite) {
   int16_t row=(sprite->y+sprite->h-(TILE_H_MM>>1))/TILE_H_MM;
   if ((row<0)||(row>=WORLD_H_TILES)) return;
   if (grid[row*WORLD_W_TILES+col]!=0x00) return;
+  if ((row<WORLD_H_TILES-1)&&(grid[(row+1)*WORLD_W_TILES+col]<0x10)) return;
   
   // In any other game, we'd have to check for headroom, but in this one there are no ceilings.
   grid[row*WORLD_W_TILES+col]=tileid;
