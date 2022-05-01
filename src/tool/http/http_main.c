@@ -107,7 +107,7 @@ int main(int argc,char **argv) {
 
   if (!(context=http_context_new(0))) return 1;
   
-  const char *host="localhost";
+  const char *host="0.0.0.0";//"localhost";
   int port=8080;
   if (http_context_serve_tcp(context,host,port)<0) {
     fprintf(stderr,"Failed to open HTTP server on %s:%d\n",host,port);

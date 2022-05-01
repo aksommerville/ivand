@@ -23,5 +23,15 @@ endif
 
 ifneq (,$(OUT_WASM))
   serve:$(OUT_WASM) $(OUTFILES_WWW) $(TOOL_http);$(TOOL_http) --htdocs=\$(realpath src/www)
+  
+  -include etc/secret
+  etc/secret:;echo "Please create and populate etc/secret to enable web deploy" ; exit 1
+  ifneq (,$(strip $(WEB_SSH_HOST)))
+    deploy-web:$(OUT_WASM) $(OUTFILES_WWW); \
+      scp -r out/www/* $(WEB_SSH_USER)@$(WEB_SSH_HOST):$(WEB_SSH_PATH) || exit 1 ; \
+      echo "Deployed to $(WEB_SSH_HOST)."
+  else
+    deploy-web:;echo "etc/secret must define WEB_SSH_USER, WEB_SSH_HOST, and WEB_SSH_PATH" ; exit 1
+  endif
 endif
 

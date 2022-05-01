@@ -24,9 +24,11 @@
 - [x] Persist high score
 - xxx Cheat camera up a little, now that we have UI chrome on top ...think it thru, maybe not (consider standing on a lone peak)
 - [ ] Sound effects
-- [ ] Possible to drop blocks midair, at least it happened once
+- [x] Possible to drop blocks midair, at least it happened once
 - [x] Tiny menu image
 - [x] Try compiling to WebAssembly, what would that take?
+- [x] Web: Link to TinyCircuits and GitHub. Describe controls, etc.
+- [x] Web: Swipe interface for mobile.
 - [ ] Get permission from the Solzhenitsyn estate: https://www.solzhenitsyncenter.org/who-we-are
 - [ ] Web: Persist high score. (localStorage? Remote service?)
 - [ ] Web: Configure input

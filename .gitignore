@@ -4,3 +4,4 @@
 /out
 /bak
 .DS_Store
+/etc/secret
