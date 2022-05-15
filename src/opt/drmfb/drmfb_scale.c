@@ -4,11 +4,15 @@
  */
  
 int drmfb_calculate_output_bounds(struct drmfb *drmfb) {
+
+  const int overscan=32;
+  int screenw=drmfb->screenw-overscan;
+  int screenh=drmfb->screenh-overscan;
   
   // Use the largest legal scale factor.
   // Too small is very unlikely -- our input is 96x64. So we're not going to handle that case, just fail.
-  int scalex=drmfb->screenw/drmfb->fbw;
-  int scaley=drmfb->screenh/drmfb->fbh;
+  int scalex=screenw/drmfb->fbw;
+  int scaley=screenh/drmfb->fbh;
   drmfb->scale=(scalex<scaley)?scalex:scaley;
   if (drmfb->scale<1) {
     fprintf(stderr,
