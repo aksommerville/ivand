@@ -624,7 +624,7 @@ void sprite_render_ivan(struct sprite *sprite) {
     case CARRYING_STATUE: tileid=0x12; goto _overhead_;
     _overhead_: {
         int16_t dstx=(SPRITE->facedir<0)?(x-2):(x-1);
-        if (tileid==0x34) { // special colorkey version of statue
+        if (tileid==0x12) { // special colorkey version of statue
           image_blit_colorkey(&fb,dstx,y-8,&fgbits,5,20,8,8);
         } else { // everything else is square
           image_blit_opaque(&fb,dstx,y-8,&bgtiles,(tileid&0x0f)*TILE_W_PIXELS,(tileid>>4)*TILE_H_PIXELS,8,8);
