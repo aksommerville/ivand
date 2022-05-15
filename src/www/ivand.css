@@ -38,7 +38,7 @@ h1 {
 }
 
 #touch-dpad {
-  width: 384px;
+  width: 300px;
   height: 384px;
   background-color: #444;
 }
@@ -48,7 +48,7 @@ h1 {
   flex-direction: column;
   align-items: stretch;
   justify-content: stretch;
-  width: 384px;
+  width: 300px;
   height: 384px;
 }
 

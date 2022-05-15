@@ -21,6 +21,18 @@
 #define PO_EVDEV_AXIS_HORZ 1
 #define PO_EVDEV_AXIS_VERT 2
 
+#define PO_EVDEV_USAGE_NONE  0
+#define PO_EVDEV_USAGE_DPAD  1
+#define PO_EVDEV_USAGE_HORZ  2
+#define PO_EVDEV_USAGE_VERT  3
+#define PO_EVDEV_USAGE_LEFT  4
+#define PO_EVDEV_USAGE_RIGHT 5
+#define PO_EVDEV_USAGE_UP    6
+#define PO_EVDEV_USAGE_DOWN  7
+#define PO_EVDEV_USAGE_A     8
+#define PO_EVDEV_USAGE_B     9
+#define PO_EVDEV_USAGE_QUIT 10
+
 /* Instance definition.
  */
  
@@ -29,11 +41,23 @@ struct po_evdev {
   void *userdata;
   int infd;
   int rescan;
+  
+  int config_loaded;
+  struct po_evdev_config {
+    uint16_t vid;
+    uint16_t pid;
+    uint8_t type;
+    uint16_t code;
+    uint8_t usage;
+  } *configv;
+  int configc,configa;
+  
   struct po_evdev_device {
     int fd;
     int evno;
     uint16_t vendor,product;
     uint16_t state;
+    // axisv is used during mapping, or on the fly for auto-configured devices:
     struct po_evdev_axis {
       uint16_t code;
       int mode;
@@ -42,7 +66,17 @@ struct po_evdev {
       int v;
     } *axisv;
     int axisc,axisa;
+    // If we found it in the config file, maps are set:
+    struct po_evdev_map {
+      uint8_t type;
+      uint16_t code;
+      uint8_t usage;
+      int srclo,srchi;
+      int srcvalue,dstvalue;
+    } *mapv;
+    int mapc,mapa;
   } *devicev;
+  
   int devicec,devicea;
   struct pollfd *pollfdv;
   int pollfdc,pollfda;
@@ -54,6 +88,7 @@ struct po_evdev {
 static void po_evdev_device_cleanup(struct po_evdev_device *device) {
   if (device->fd>=0) close(device->fd);
   if (device->axisv) free(device->axisv);
+  if (device->mapv) free(device->mapv);
 }
  
 void po_evdev_del(struct po_evdev *evdev) {
@@ -66,6 +101,8 @@ void po_evdev_del(struct po_evdev *evdev) {
     while (evdev->devicec-->0) po_evdev_device_cleanup(evdev->devicev+evdev->devicec);
     free(evdev->devicev);
   }
+  
+  if (evdev->configv) free(evdev->configv);
   
   free(evdev);
 }
@@ -109,6 +146,355 @@ struct po_evdev *po_evdev_new(
  
 void *po_evdev_get_userdata(const struct po_evdev *evdev) {
   return evdev->userdata;
+}
+
+/* Device map list.
+ */
+ 
+static int po_evdev_device_mapv_search(const struct po_evdev_device *device,uint8_t type,uint16_t code) {
+  int lo=0,hi=device->mapc;
+  while (lo<hi) {
+    int ck=(lo+hi)>>1;
+         if (type<device->mapv[ck].type) hi=ck;
+    else if (type>device->mapv[ck].type) lo=ck+1;
+    else if (code<device->mapv[ck].code) hi=ck;
+    else if (code>device->mapv[ck].code) lo=ck+1;
+    else return ck;
+  }
+  return -lo-1;
+}
+
+static struct po_evdev_map *po_evdev_device_mapv_insert(struct po_evdev_device *device,int p,uint8_t type,uint16_t code) {
+  if ((p<0)||(p>device->mapc)) return 0;
+  if (device->mapc>=device->mapa) {
+    int na=device->mapa+8;
+    if (na>INT_MAX/sizeof(struct po_evdev_map)) return 0;
+    void *nv=realloc(device->mapv,sizeof(struct po_evdev_map)*na);
+    if (!nv) return 0;
+    device->mapv=nv;
+    device->mapa=na;
+  }
+  struct po_evdev_map *map=device->mapv+p;
+  memmove(map+1,map,sizeof(struct po_evdev_map)*(device->mapc-p));
+  device->mapc++;
+  memset(map,0,sizeof(struct po_evdev_map));
+  map->type=type;
+  map->code=code;
+  return map;
+}
+
+/* Find axis.
+ */
+ 
+static struct po_evdev_axis *po_evdev_device_find_axis(
+  const struct po_evdev_device *device,
+  uint16_t code
+) {
+  int lo=0,hi=device->axisc;
+  while (lo<hi) {
+    int ck=(lo+hi)>>1;
+    struct po_evdev_axis *axis=device->axisv+ck;
+         if (code<axis->code) hi=ck;
+    else if (code>axis->code) lo=ck+1;
+    else return axis;
+  }
+  return 0;
+}
+
+/* Search configuration.
+ */
+ 
+static int po_evdev_configv_search(int *p,const struct po_evdev *evdev,uint16_t vid,uint16_t pid) {
+  int lo=0,hi=evdev->configc;
+  while (lo<hi) {
+    int ck=(lo+hi)>>1;
+         if (vid<evdev->configv[ck].vid) hi=ck;
+    else if (vid>evdev->configv[ck].vid) lo=ck+1;
+    else if (pid<evdev->configv[ck].pid) hi=ck;
+    else if (pid>evdev->configv[ck].pid) lo=ck+1;
+    else {
+      int c=1;
+      while ((ck>lo)&&(evdev->configv[ck-1].vid==vid)&&(evdev->configv[ck-1].pid==pid)) { ck--; c++; }
+      while ((ck+c<hi)&&(evdev->configv[ck+c].vid==vid)&&(evdev->configv[ck+c].pid==pid)) c++;
+      *p=ck;
+      return c;
+    }
+  }
+  *p=lo;
+  return 0;
+}
+
+static int po_evdev_configv_search_1(const struct po_evdev *evdev,uint16_t vid,uint16_t pid,uint8_t type,uint16_t code) {
+  int lo=0,hi=evdev->configc;
+  while (lo<hi) {
+    int ck=(lo+hi)>>1;
+         if (vid<evdev->configv[ck].vid) hi=ck;
+    else if (vid>evdev->configv[ck].vid) lo=ck+1;
+    else if (pid<evdev->configv[ck].pid) hi=ck;
+    else if (pid>evdev->configv[ck].pid) lo=ck+1;
+    else if (type<evdev->configv[ck].type) hi=ck;
+    else if (type>evdev->configv[ck].type) lo=ck+1;
+    else if (code<evdev->configv[ck].code) hi=ck;
+    else if (code>evdev->configv[ck].code) lo=ck+1;
+    else return ck;
+  }
+  return -lo-1;
+}
+
+/* Add a config entry.
+ */
+ 
+static int po_evdev_configv_insert(struct po_evdev *evdev,int p,uint16_t vid,uint16_t pid,uint8_t type,uint16_t code,uint8_t usage) {
+  if ((p<0)||(p>evdev->configc)) return -1;
+  if (evdev->configc>=evdev->configa) {
+    int na=evdev->configa+16;
+    if (na>INT_MAX/sizeof(struct po_evdev_config)) return -1;
+    void *nv=realloc(evdev->configv,sizeof(struct po_evdev_config)*na);
+    if (!nv) return -1;
+    evdev->configv=nv;
+    evdev->configa=na;
+  }
+  struct po_evdev_config *config=evdev->configv+p;
+  memmove(config+1,config,sizeof(struct po_evdev_config)*(evdev->configc-p));
+  evdev->configc++;
+  config->vid=vid;
+  config->pid=pid;
+  config->type=type;
+  config->code=code;
+  config->usage=usage;
+  return 0;
+}
+
+/* Parse integer, for config file.
+ * There will never be negative ints here.
+ * I won't bother checking for overflow.
+ */
+ 
+static int po_evdev_eval_int(int *dst,const char *src,int srcc) {
+  if (srcc<1) return -1;
+  int base=10,srcp=0;
+  *dst=0;
+  if ((srcc>=3)&&(src[0]=='0')&&((src[1]=='x')||(src[1]=='X'))) {
+    srcp=2;
+    base=16;
+  }
+  while (srcp<srcc) {
+    int digit=src[srcp++];
+         if ((digit>='0')&&(digit<='9')) digit=digit-'0';
+    else if ((digit>='a')&&(digit<='z')) digit=digit-'a'+10;
+    else if ((digit>='A')&&(digit<='Z')) digit=digit-'A'+10;
+    else return -1;
+    if (digit>=base) return -1;
+    (*dst)*=base;
+    (*dst)+=digit;
+  }
+  return 0;
+}
+
+/* Read the config device introducer: ">>> VID PID", both integers with optional prefix.
+ */
+ 
+static int po_evdev_parse_config_introducer(uint16_t *vid,uint16_t *pid,const char *src,int srcc) {
+  int srcp=0,tokenc,v;
+  const char *token;
+  
+  while ((srcp<srcc)&&((unsigned char)src[srcp]<=0x20)) srcp++;
+  token=src+srcp;
+  tokenc=0;
+  while ((srcp<srcc)&&((unsigned char)src[srcp]>0x20)) { srcp++; tokenc++; }
+  while ((srcp<srcc)&&((unsigned char)src[srcp]<=0x20)) srcp++;
+  if ((tokenc!=3)||memcmp(token,">>>",3)) return -1;
+  
+  token=src+srcp;
+  tokenc=0;
+  while ((srcp<srcc)&&((unsigned char)src[srcp]>0x20)) { srcp++; tokenc++; }
+  while ((srcp<srcc)&&((unsigned char)src[srcp]<=0x20)) srcp++;
+  if (po_evdev_eval_int(&v,token,tokenc)<0) return -1;
+  if ((v<0)||(v>0xffff)) return -1;
+  *vid=v;
+  
+  token=src+srcp;
+  tokenc=0;
+  while ((srcp<srcc)&&((unsigned char)src[srcp]>0x20)) { srcp++; tokenc++; }
+  while ((srcp<srcc)&&((unsigned char)src[srcp]<=0x20)) srcp++;
+  if (po_evdev_eval_int(&v,token,tokenc)<0) return -1;
+  if ((v<0)||(v>0xffff)) return -1;
+  *pid=v;
+  
+  // There can be more content, and usually is: The device's name follows.
+  
+  return 0;
+}
+
+/* One line of config file, a single input button.
+ */
+ 
+static int po_evdev_read_and_add_config(struct po_evdev *evdev,const char *src,int srcc,uint16_t vid,uint16_t pid) {
+  int srcp=0,tokenc,srcbtnid,usage;
+  const char *token;
+  
+  while ((srcp<srcc)&&((unsigned char)src[srcp]<=0x20)) srcp++;
+  token=src+srcp;
+  tokenc=0;
+  while ((srcp<srcc)&&((unsigned char)src[srcp]>0x20)) { srcp++; tokenc++; }
+  while ((srcp<srcc)&&((unsigned char)src[srcp]<=0x20)) srcp++;
+  if (po_evdev_eval_int(&srcbtnid,token,tokenc)<0) return -1;
+  
+  while ((srcp<srcc)&&((unsigned char)src[srcp]<=0x20)) srcp++;
+  token=src+srcp;
+  tokenc=0;
+  while ((srcp<srcc)&&((unsigned char)src[srcp]>0x20)) { srcp++; tokenc++; }
+  while ((srcp<srcc)&&((unsigned char)src[srcp]<=0x20)) srcp++;
+       if ((tokenc==1)&&!memcmp(token,"A",1)) usage=PO_EVDEV_USAGE_A;
+  else if ((tokenc==1)&&!memcmp(token,"B",1)) usage=PO_EVDEV_USAGE_B;
+  else if ((tokenc==4)&&!memcmp(token,"LEFT",4)) usage=PO_EVDEV_USAGE_LEFT;
+  else if ((tokenc==5)&&!memcmp(token,"RIGHT",5)) usage=PO_EVDEV_USAGE_RIGHT;
+  else if ((tokenc==2)&&!memcmp(token,"UP",2)) usage=PO_EVDEV_USAGE_UP;
+  else if ((tokenc==4)&&!memcmp(token,"DOWN",4)) usage=PO_EVDEV_USAGE_DOWN;
+  else if ((tokenc==4)&&!memcmp(token,"HORZ",4)) usage=PO_EVDEV_USAGE_HORZ;
+  else if ((tokenc==4)&&!memcmp(token,"VERT",4)) usage=PO_EVDEV_USAGE_VERT;
+  else if ((tokenc==4)&&!memcmp(token,"DPAD",4)) usage=PO_EVDEV_USAGE_DPAD;
+  else if ((tokenc==4)&&!memcmp(token,"QUIT",4)) usage=PO_EVDEV_USAGE_QUIT;
+  else if ((tokenc==4)&&!memcmp(token,"AUX1",4)) usage=PO_EVDEV_USAGE_QUIT;
+  else usage=PO_EVDEV_USAGE_NONE;
+  
+  if (srcp<srcc) return -1;
+  
+  // Out of range? Maybe it's some non-evdev thing. No worries.
+  if ((srcbtnid<0)||(srcbtnid>0x00ffffff)) return 0;
+  uint8_t type=srcbtnid>>16;
+  uint16_t code=srcbtnid;
+  
+  // Unknown usage? No worries at all; Romassist defines more buttons than we do.
+  if (usage==PO_EVDEV_USAGE_NONE) return 0;
+  
+  // Multiple definitions per source might be legal in Romassist, I don't remember. But for us, the first one wins.
+  int p=po_evdev_configv_search_1(evdev,vid,pid,type,code);
+  if (p>=0) return 0;
+  p=-p-1;
+  
+  return po_evdev_configv_insert(evdev,p,vid,pid,type,code,usage);
+}
+
+/* Load configuration from raw text.
+ */
+ 
+static int po_evdev_parse_config(struct po_evdev *evdev,const char *src,int srcc,const char *path) {
+  int srcp=0,lineno=1;
+  uint16_t vid=0,pid=0;
+  while (srcp<srcc) {
+    if (src[srcp]==0x0a) {
+      srcp++;
+      lineno++;
+      continue;
+    }
+    const char *line=src+srcp;
+    int linec=0,comment=0;
+    while ((srcp<srcc)&&(src[srcp]!=0x0a)) {
+      if (src[srcp]=='#') comment=1;
+      else if (!comment) linec++;
+      srcp++;
+    }
+    while (linec&&((unsigned char)line[linec-1]<=0x20)) linec--;
+    while (linec&&((unsigned char)line[0]<=0x20)) { line++; linec--; }
+    if (!linec) continue;
+    
+    if ((linec>=3)&&!memcmp(line,">>>",3)) { // introduce device
+      if (po_evdev_parse_config_introducer(&vid,&pid,line,linec)<0) {
+        fprintf(stderr,"%s:%d: Failed to parse device introducer.\n",path,lineno);
+        return -1;
+      }
+      
+    } else { // "INPUT OUTPUT"
+      if (po_evdev_read_and_add_config(evdev,line,linec,vid,pid)<0) {
+        fprintf(stderr,"%s:%d: Failed to parse or add input config.\n",path,lineno);
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
+/* Load configuration if we haven't yet.
+ * We will only attempt once.
+ */
+ 
+static int po_evdev_require_config(struct po_evdev *evdev) {
+  if (evdev->config_loaded) return 0;
+  evdev->config_loaded=1;
+  const char *home=getenv("HOME");
+  if (!home) home="/home/andy";
+  char path[1024];
+  int pathc=snprintf(path,sizeof(path),"%s/.romassist/input.cfg",home);
+  if ((pathc<1)||(pathc>=sizeof(path))) return -1;
+  int fd=open(path,O_RDONLY);
+  if (fd<0) return -1;
+  
+  off_t flen=lseek(fd,0,SEEK_END);
+  if (!flen) {
+    close(fd);
+    return 0;
+  }
+  if ((flen<0)||(flen>INT_MAX)||lseek(fd,0,SEEK_SET)) {
+    close(fd);
+    return -1;
+  }
+  char *src=malloc(flen);
+  if (!src) {
+    close(fd);
+    return -1;
+  }
+  int srcc=0;
+  while (srcc<flen) {
+    int err=read(fd,src+srcc,flen-srcc);
+    if (err<=0) {
+      free(src);
+      close(fd);
+      return -1;
+    }
+    srcc+=err;
+  }
+  
+  int err=po_evdev_parse_config(evdev,src,srcc,path);
+  free(src);
+  close(fd);
+  return 0;
+}
+
+/* Configure device.
+ * Returns >0 on success, 0 if anything goes wrong.
+ */
+ 
+static int po_evdev_configure_device(struct po_evdev *evdev,struct po_evdev_device *device) {
+  if (po_evdev_require_config(evdev)<0) return 0;
+  int p,c;
+  c=po_evdev_configv_search(&p,evdev,device->vendor,device->product);
+  if (c<1) return 0;
+  const struct po_evdev_config *config=evdev->configv+p;
+  for (;c-->0;config++) {
+    int p=po_evdev_device_mapv_search(device,config->type,config->code);
+    if (p>=0) continue; // shouldn't happen; we strip duplicates from map->configv
+    p=-p-1;
+    struct po_evdev_map *map=po_evdev_device_mapv_insert(device,p,config->type,config->code);
+    if (!map) return -1;
+    map->usage=config->usage;
+    
+    // axes require thresholds
+    if (config->type==EV_ABS) {
+      struct po_evdev_axis *axis=po_evdev_device_find_axis(device,config->code);
+      if (axis) {
+        map->srclo=axis->lo;
+        map->srchi=axis->hi;
+      } else {
+        map->srclo=-1;
+        map->srchi=1;
+      }
+    } else {
+      map->srclo=1;
+      map->srchi=INT_MAX;
+    }
+  }
+  return 1;
 }
 
 /* Find connected device.
@@ -295,6 +681,12 @@ static int po_evdev_try_file(struct po_evdev *evdev,const char *base,int basec) 
     }
   }
   
+  if (!po_evdev_configure_device(evdev,device)) {
+    //fprintf(stderr,"...configuration failed, will use defaults\n");
+  } else {
+    //fprintf(stderr,"...configured device per file\n");
+  }
+  
   fprintf(stderr,"Connected input device: %.*s\n",namec,name);
   return 1;
 }
@@ -364,24 +756,6 @@ static int po_evdev_read_inotify(struct po_evdev *evdev) {
     int basec=0;
     while ((basec<event->len)&&event->name[basec]) basec++;
     po_evdev_try_file(evdev,event->name,basec);
-  }
-  return 0;
-}
-
-/* Find axis.
- */
- 
-static struct po_evdev_axis *po_evdev_device_find_axis(
-  const struct po_evdev_device *device,
-  uint16_t code
-) {
-  int lo=0,hi=device->axisc;
-  while (lo<hi) {
-    int ck=(lo+hi)>>1;
-    struct po_evdev_axis *axis=device->axisv+ck;
-         if (code<axis->code) hi=ck;
-    else if (code>axis->code) lo=ck+1;
-    else return axis;
   }
   return 0;
 }
@@ -467,7 +841,7 @@ static int po_evdev_key(struct po_evdev *evdev,struct po_evdev_device *device,ui
   return evdev->cb_button(evdev,btnid,value);
 }
  
-static int po_evdev_event(
+static int po_evdev_event_unconfigured(
   struct po_evdev *evdev,
   struct po_evdev_device *device,
   const struct input_event *event
@@ -584,6 +958,60 @@ static int po_evdev_event(
   }
   return 0;
 }
+
+static int po_evdev_event_configured(struct po_evdev *evdev,struct po_evdev_device *device,const struct input_event *event) {
+
+  // Get out quick for eg EV_SYN; they happen a lot and they're the worst-case scenario for searching.
+  if ((event->type!=EV_ABS)&&(event->type!=EV_KEY)) return 0;
+  
+  int p=po_evdev_device_mapv_search(device,event->type,event->code);
+  if (p<0) return 0;
+  struct po_evdev_map *map=device->mapv+p;
+  
+  if (event->type==EV_ABS) {
+    if (event->value==map->srcvalue) return 0;
+    map->srcvalue=event->value;
+    int dstvalue=(event->value<=map->srclo)?-1:(event->value>=map->srchi)?1:0;
+    if (dstvalue==map->dstvalue) return 0;
+    
+    switch (map->dstvalue) {
+      case -1: switch (map->usage) {
+          case PO_EVDEV_USAGE_HORZ: device->state&=~BUTTON_LEFT; if (evdev->cb_button(evdev,BUTTON_LEFT,0)<0) return -1; break;
+          case PO_EVDEV_USAGE_VERT: device->state&=~BUTTON_UP; if (evdev->cb_button(evdev,BUTTON_UP,0)<0) return -1; break;
+        } break;
+      case 1: switch (map->usage) {
+          case PO_EVDEV_USAGE_HORZ: device->state&=~BUTTON_RIGHT; if (evdev->cb_button(evdev,BUTTON_RIGHT,0)<0) return -1; break;
+          case PO_EVDEV_USAGE_VERT: device->state&=~BUTTON_DOWN; if (evdev->cb_button(evdev,BUTTON_DOWN,0)<0) return -1; break;
+        } break;
+    }
+    
+    switch (map->dstvalue=dstvalue) {
+      case -1: switch (map->usage) {
+          case PO_EVDEV_USAGE_HORZ: device->state|=BUTTON_LEFT; if (evdev->cb_button(evdev,BUTTON_LEFT,1)<0) return -1; break;
+          case PO_EVDEV_USAGE_VERT: device->state|=BUTTON_UP; if (evdev->cb_button(evdev,BUTTON_UP,1)<0) return -1; break;
+        } break;
+      case 1: switch (map->usage) {
+          case PO_EVDEV_USAGE_HORZ: device->state|=BUTTON_RIGHT; if (evdev->cb_button(evdev,BUTTON_RIGHT,1)<0) return -1; break;
+          case PO_EVDEV_USAGE_VERT: device->state|=BUTTON_DOWN; if (evdev->cb_button(evdev,BUTTON_DOWN,1)<0) return -1; break;
+        } break;
+    }
+  
+  } else if (event->type==EV_KEY) {
+    int dstvalue=((event->value>=map->srclo)&&(event->value<=map->srchi))?1:0;
+    if (dstvalue==map->dstvalue) return 0;
+    map->dstvalue=dstvalue;
+    switch (map->usage) {
+      case PO_EVDEV_USAGE_LEFT: if (evdev->cb_button(evdev,BUTTON_LEFT,dstvalue)<0) return -1; break;
+      case PO_EVDEV_USAGE_RIGHT: if (evdev->cb_button(evdev,BUTTON_RIGHT,dstvalue)<0) return -1; break;
+      case PO_EVDEV_USAGE_UP: if (evdev->cb_button(evdev,BUTTON_UP,dstvalue)<0) return -1; break;
+      case PO_EVDEV_USAGE_DOWN: if (evdev->cb_button(evdev,BUTTON_DOWN,dstvalue)<0) return -1; break;
+      case PO_EVDEV_USAGE_A: if (evdev->cb_button(evdev,BUTTON_A,dstvalue)<0) return -1; break;
+      case PO_EVDEV_USAGE_B: if (evdev->cb_button(evdev,BUTTON_B,dstvalue)<0) return -1; break;
+      case PO_EVDEV_USAGE_QUIT: if (evdev->cb_button(evdev,BUTTON_QUIT,dstvalue)<0) return -1; break;
+    }
+  }
+  return 0;
+}
  
 static int po_evdev_read_device(struct po_evdev *evdev,struct po_evdev_device *device) {
   if (!device) return -1;
@@ -592,8 +1020,14 @@ static int po_evdev_read_device(struct po_evdev *evdev,struct po_evdev_device *d
   if (eventc<=0) return po_evdev_drop_fd(evdev,device->fd);
   eventc/=sizeof(struct input_event);
   const struct input_event *event=eventv;
-  for (;eventc-->0;event++) {
-    if (po_evdev_event(evdev,device,event)<0) return -1;
+  if (device->mapc) {
+    for (;eventc-->0;event++) {
+      if (po_evdev_event_configured(evdev,device,event)<0) return -1;
+    }
+  } else {
+    for (;eventc-->0;event++) {
+      if (po_evdev_event_unconfigured(evdev,device,event)<0) return -1;
+    }
   }
   return 0;
 }
