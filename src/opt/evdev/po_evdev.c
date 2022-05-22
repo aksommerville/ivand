@@ -621,6 +621,33 @@ static int po_evdev_device_add_axis(
   return 0;
 }
 
+/* Reject devices with "keyboard", "mouse", or "speaker" in the name.
+ */
+ 
+static int po_evdev_is_forbidden_name(const char *src,int srcc) {
+  char norm[64];
+  if (srcc>sizeof(norm)) srcc=sizeof(norm);
+  int i=0; for (;i<srcc;i++) {
+         if ((src[i]>='a')&&(src[i]<='z')) norm[i]=src[i];
+    else if ((src[i]>='A')&&(src[i]<='Z')) norm[i]=src[i]+0x20;
+    else if ((src[i]>='0')&&(src[i]<='9')) norm[i]=src[i];
+    else norm[i]=0;
+  }
+  int srcp=0;
+  while (srcp<srcc) {
+    if (!norm[srcp]) { srcp++; continue; }
+    const char *word=norm+srcp;
+    int wordc=0;
+    while ((srcp<srcc)&&norm[srcp]) { srcp++; wordc++; }
+    
+    if ((wordc==8)&&!memcmp(word,"keyboard",8)) return 1;
+    if ((wordc==5)&&!memcmp(word,"mouse",5)) return 1;
+    if ((wordc==7)&&!memcmp(word,"speaker",7)) return 1;
+    
+  }
+  return 0;
+}
+
 /* Try to connect to one file, no harm if we can't open it or whatever.
  */
  
@@ -658,6 +685,11 @@ static int po_evdev_try_file(struct po_evdev *evdev,const char *base,int basec) 
   char name[64];
   int namec=ioctl(fd,EVIOCGNAME(sizeof(name)),name);
   if ((namec<0)||(namec>sizeof(name))) namec=0;
+  
+  if (po_evdev_is_forbidden_name(name,namec)) {
+    close(fd);
+    return 0;
+  }
   
   struct po_evdev_device *device=po_evdev_add_device(evdev,evno,fd);
   if (!device) {
