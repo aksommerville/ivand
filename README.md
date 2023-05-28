@@ -21,33 +21,7 @@
 
 ## TODO
 
-- [x] Persist high score
-- xxx Cheat camera up a little, now that we have UI chrome on top ...think it thru, maybe not (consider standing on a lone peak)
-- [ ] Sound effects
-- [x] Possible to drop blocks midair, at least it happened once
-- [x] Tiny menu image
-- [x] Try compiling to WebAssembly, what would that take?
-- [x] Web: Link to TinyCircuits and GitHub. Describe controls, etc.
-- [x] Web: Swipe interface for mobile.
+- [ ] Sound effects, or eliminate audio drivers.
 - [ ] Get permission from the Solzhenitsyn estate: https://www.solzhenitsyncenter.org/who-we-are
 - [ ] Web: Persist high score. (localStorage? Remote service?)
 - [ ] Web: Configure input
-- [x] Bricks and barrels
-- [x] World map thumbnail
-- [x] Move tattle rendering to global game (draw in front of thumbnail)
-- [x] Clock
-- [x] Scorekeeping
-- [x] Truck deliveries
-- [x] Guards
-- [x] Statue
-- [x] Main menu
-- [x] Death animation, don't just hop to the menu immediately.
-- [x] Fairy appears when you're trapped and creates new dirt
-- [x] Watch the 1970 movie. There's a movie!
-- - https://www.youtube.com/watch?v=YqG1uwhTX2o
-- - ...it doesn't do justice to the book (an example i intend to follow...)
-- [x] Fall to ground when you die, currently he'll stop midair
-- [x] Guard can sometimes shoot thru walls (only leftward?) Bullet looks higher than usual when this happens
-- [x] Truck, eliminate the passive tile so we can dump things on the hood.
-- [x] Are there some finer-grade criteria we can score against? Movement? HP? ...yes and yes
-- [x] Prevent fairy in last 10 s or so

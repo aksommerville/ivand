@@ -1,7 +1,12 @@
 # native.mk
 # Rules for building the game for your PC.
 
-PO_NATIVE_PLATFORM:=linux
+HOST:=$(shell uname -n)
+ifeq ($(HOST),raspberrypi)
+  PO_NATIVE_PLATFORM:=raspi
+else
+  PO_NATIVE_PLATFORM:=linux
+endif
 
 ifeq ($(PO_NATIVE_PLATFORM),linux) #-----------------------------------------------
 
@@ -9,6 +14,15 @@ ifeq ($(PO_NATIVE_PLATFORM),linux) #--------------------------------------------
   LD_NATIVE:=gcc
   LDPOST_NATIVE:=-lm -lz -lasound -lX11 -lpthread -ldrm
   OPT_ENABLE_NATIVE:=genioc alsa x11 evdev drmfb
+  OPT_ENABLE_TOOL:=alsa ossmidi inotify
+  EXE_NATIVE:=out/native/ivand
+
+else ifeq ($(PO_NATIVE_PLATFORM),raspi) #-----------------------------------------------
+
+  CC_NATIVE:=gcc -c -MMD -O2 -Isrc -Isrc/main -Werror -Wimplicit -DPO_NATIVE=1
+  LD_NATIVE:=gcc
+  LDPOST_NATIVE:=-lm -lz -lasound -lpthread
+  OPT_ENABLE_NATIVE:=genioc alsa evdev
   OPT_ENABLE_TOOL:=alsa ossmidi inotify
   EXE_NATIVE:=out/native/ivand
 
