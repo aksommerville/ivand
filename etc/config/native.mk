@@ -19,10 +19,10 @@ ifeq ($(PO_NATIVE_PLATFORM),linux) #--------------------------------------------
 
 else ifeq ($(PO_NATIVE_PLATFORM),raspi) #-----------------------------------------------
 
-  CC_NATIVE:=gcc -c -MMD -O2 -Isrc -Isrc/main -Werror -Wimplicit -DPO_NATIVE=1
-  LD_NATIVE:=gcc
-  LDPOST_NATIVE:=-lm -lz -lasound -lpthread
-  OPT_ENABLE_NATIVE:=genioc alsa evdev
+  CC_NATIVE:=gcc -c -MMD -O2 -Isrc -Isrc/main -Werror -Wimplicit -DPO_NATIVE=1 -I/opt/vc/include
+  LD_NATIVE:=gcc -L/opt/vc/lib
+  LDPOST_NATIVE:=-lm -lz -lasound -lpthread -lbcm_host -lEGL -lGLESv2 -lGL
+  OPT_ENABLE_NATIVE:=genioc alsa evdev bcm
   OPT_ENABLE_TOOL:=alsa ossmidi inotify
   EXE_NATIVE:=out/native/ivand
 

@@ -15,6 +15,9 @@
 #if PO_USE_drmfb
   #include "opt/drmfb/drmfb.h"
 #endif
+#if PO_USE_bcm
+  #include "opt/bcm/bcm.h"
+#endif
 #if PO_USE_alsa
   #include "opt/alsa/alsa.h"
 #endif
@@ -28,6 +31,9 @@ extern struct genioc {
   #endif
   #if PO_USE_drmfb
     struct drmfb *drmfb;
+  #endif
+  #if PO_USE_bcm
+    struct bcm *bcm;
   #endif
   #if PO_USE_alsa
     struct alsa *alsa;
