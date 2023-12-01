@@ -15,11 +15,11 @@
 #if PO_USE_drmfb
   #include "opt/drmfb/drmfb.h"
 #endif
+#if PO_USE_drmgx
+  #include "opt/drmgx/drmgx.h"
+#endif
 #if PO_USE_bcm
   #include "opt/bcm/bcm.h"
-#endif
-#if PO_USE_alsa
-  #include "opt/alsa/alsa.h"
 #endif
 #if PO_USE_evdev
   #include "opt/evdev/po_evdev.h"
@@ -32,11 +32,11 @@ extern struct genioc {
   #if PO_USE_drmfb
     struct drmfb *drmfb;
   #endif
+  #if PO_USE_drmgx
+    struct drmgx *drmgx;
+  #endif
   #if PO_USE_bcm
     struct bcm *bcm;
-  #endif
-  #if PO_USE_alsa
-    struct alsa *alsa;
   #endif
   #if PO_USE_evdev
     struct po_evdev *evdev;

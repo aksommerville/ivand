@@ -1,7 +1,16 @@
 # tiny.mk
 # Your Arduino build environment.
 
-ifeq (,) # greyskull
+ifeq (,) # nuc
+  TINY_PORT:=ttyACM0
+  TINY_IDEROOT:=$(wildcard ~/.arduino15/packages/arduino/tools/arm-none-eabi-gcc/7-2017q4)
+  TINY_IDEVERSION:=10816
+  TINY_BUILDER_OPTS:=
+  TINY_PKGROOT:=$(wildcard ~/.arduino15/packages)
+  TINY_LIBSROOT:=$(wildcard ~/Arduino/libraries)
+endif
+
+ifeq (,no) # greyskull
   TINY_PORT:=ttyACM0
   TINY_IDEROOT:=/opt/arduino-1.8.16
   TINY_IDEVERSION:=10816

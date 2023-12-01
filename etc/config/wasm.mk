@@ -2,7 +2,7 @@
 # Rules to build the thing for WebAssembly.
 
 WASM_MICRO_RUNTIME:=/home/andy/proj/thirdparty/wasm-micro-runtime
-WASI_SDK:=/home/andy/proj/thirdparty/wasi-sdk-bin/wasi-sdk-14.0
+WASI_SDK:=/home/andy/proj/thirdparty/wasi-sdk-16.0
 
 LIBVMLIB=$(WASM_MICRO_RUNTIME)/product-mini/platforms/linux/build/libvmlib.a
 IWASMHDR=$(WASM_MICRO_RUNTIME)/core/iwasm/include
