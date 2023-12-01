@@ -1,6 +1,6 @@
 # commands.mk
 
-run:$(EXE_NATIVE) $(INCLUDE_FILES_NATIVE);$(EXE_NATIVE)
+run:$(EXE_NATIVE) $(INCLUDE_FILES_NATIVE);$(EXE_NATIVE) $(RUNARGS)
 
 launch:$(TINY_BIN_SOLO); \
   stty -F /dev/$(TINY_PORT) 1200 ; \

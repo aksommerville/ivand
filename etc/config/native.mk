@@ -5,13 +5,16 @@ UNAMESMN:=$(shell uname -smn)
 ifeq ($(UNAMESMN),Linux raspberrypi aarch64)
   # Pi 4. Use DRM only.
   PO_NATIVE_PLATFORM:=linuxguiless
+  NATIVE_ONLY:=1
   RUNARGS:=--video-device=/dev/dri/card1
 else ifneq (,$(strip $(filter raspberrypi,$(UNAMESMN))))
   # Other Pi. Use BCM only.
   PO_NATIVE_PLATFORM:=raspi
+  NATIVE_ONLY:=1
 else ifneq (,$(strip $(filter vcs,$(UNAMESMN))))
   # Atari VCS, another bespoke game console i use. DRM only.
   PO_NATIVE_PLATFORM:=linuxguiless
+  NATIVE_ONLY:=1
 else ifneq (,$(strip $(filter Linux,$(UNAMESMN))))
   # Linux in general, use both DRM and GLX
   PO_NATIVE_PLATFORM:=linux

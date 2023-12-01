@@ -291,6 +291,10 @@ uint32_t micros() {
  */
 
 int main(int argc,char **argv) {
+  if (genioc_argv_get_boolean(argc,argv,"--help")) {
+    genioc_print_help(argv[0]);
+    return 0;
+  }
   if (genioc_init_drivers(argc,argv)<0) {
     fprintf(stderr,"Failed to initialize drivers.\n");
     return 1;
