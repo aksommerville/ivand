@@ -44,7 +44,7 @@ else ifeq ($(PO_NATIVE_PLATFORM),linuxguiless) #--------------------------------
 
   CC_NATIVE:=gcc -c -MMD -O2 -Isrc -Isrc/main -Werror -Wimplicit -DPO_NATIVE=1 -I/usr/include/libdrm
   LD_NATIVE:=gcc
-  LDPOST_NATIVE:=-lm -lz -ldrm -lgbm -lGLESv2 -lEGL
+  LDPOST_NATIVE:=-lm -lz -ldrm -lgbm -lGLESv2 -lEGL -lpthread -lasound
   OPT_ENABLE_NATIVE:=genioc evdev drmgx
   OPT_ENABLE_TOOL:=alsa ossmidi inotify
   EXE_NATIVE:=out/native/ivand
