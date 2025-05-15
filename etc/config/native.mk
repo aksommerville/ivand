@@ -15,6 +15,10 @@ else ifneq (,$(strip $(filter vcs,$(UNAMESMN))))
   # Atari VCS, another bespoke game console i use. DRM only.
   PO_NATIVE_PLATFORM:=linuxguiless
   NATIVE_ONLY:=1
+else ifneq (,$(strip $(filter contop%,$(UNAMESMN))))
+  # Linux laptops I use for exhibiting. DRM only.
+  PO_NATIVE_PLATFORM:=linuxguiless
+  NATIVE_ONLY:=1
 else ifneq (,$(strip $(filter Linux,$(UNAMESMN))))
   # Linux in general, use both DRM and GLX
   PO_NATIVE_PLATFORM:=linux
