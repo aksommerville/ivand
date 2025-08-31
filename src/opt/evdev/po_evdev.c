@@ -272,21 +272,17 @@ static int po_evdev_configv_insert(struct po_evdev *evdev,int p,uint16_t vid,uin
  
 static int po_evdev_eval_int(int *dst,const char *src,int srcc) {
   if (srcc<1) return -1;
-  int base=10,srcp=0;
+  int srcp=0;
   *dst=0;
-  if ((srcc>=3)&&(src[0]=='0')&&((src[1]=='x')||(src[1]=='X'))) {
-    srcp=2;
-    base=16;
-  }
+  if ((srcc>=3)&&(src[0]=='0')&&((src[1]=='x')||(src[1]=='X'))) srcp=2;
   while (srcp<srcc) {
     int digit=src[srcp++];
          if ((digit>='0')&&(digit<='9')) digit=digit-'0';
     else if ((digit>='a')&&(digit<='z')) digit=digit-'a'+10;
     else if ((digit>='A')&&(digit<='Z')) digit=digit-'A'+10;
     else return -1;
-    if (digit>=base) return -1;
-    (*dst)*=base;
-    (*dst)+=digit;
+    (*dst)<<=4;
+    (*dst)|=digit;
   }
   return 0;
 }
@@ -357,6 +353,7 @@ static int po_evdev_read_and_add_config(struct po_evdev *evdev,const char *src,i
   else if ((tokenc==4)&&!memcmp(token,"DPAD",4)) usage=PO_EVDEV_USAGE_DPAD;
   else if ((tokenc==4)&&!memcmp(token,"QUIT",4)) usage=PO_EVDEV_USAGE_QUIT;
   else if ((tokenc==4)&&!memcmp(token,"AUX1",4)) usage=PO_EVDEV_USAGE_QUIT;
+  else if ((tokenc==4)&&!memcmp(token,"AUX3",4)) usage=PO_EVDEV_USAGE_QUIT;
   else usage=PO_EVDEV_USAGE_NONE;
   
   if (srcp<srcc) return -1;
@@ -426,7 +423,7 @@ static int po_evdev_require_config(struct po_evdev *evdev) {
   const char *home=getenv("HOME");
   if (!home) home="/home/andy";
   char path[1024];
-  int pathc=snprintf(path,sizeof(path),"%s/.romassist/input.cfg",home);
+  int pathc=snprintf(path,sizeof(path),"%s/.config/aksomm/input",home);
   if ((pathc<1)||(pathc>=sizeof(path))) return -1;
   int fd=open(path,O_RDONLY);
   if (fd<0) return -1;
