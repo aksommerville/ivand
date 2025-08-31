@@ -25,9 +25,10 @@ static uint8_t highscore_loaded=0;
   static char highscore_path_storage[1024];
   static const char *highscore_path() {
     const char *home=getenv("HOME");
-    int c=snprintf(highscore_path_storage,sizeof(highscore_path_storage),"%s/.ivand/highscore",home);
+    int c=snprintf(highscore_path_storage,sizeof(highscore_path_storage),"%s/.config/aksomm/ivand/highscore",home);
     if ((c<1)||(c>=sizeof(highscore_path_storage))) return 0;
     int slashp=c-1;
+    // This will create "ivand/" but not ".config/aksomm/". Not going to bother with a more robust mkdir -p; just play one of my other games first.
     while (slashp&&(highscore_path_storage[slashp]!='/')) slashp--;
     highscore_path_storage[slashp]=0;
     mkdir(highscore_path_storage,0775);
